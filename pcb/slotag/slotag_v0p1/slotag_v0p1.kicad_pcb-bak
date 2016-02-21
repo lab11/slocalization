@@ -5,7 +5,7 @@
     (no_connects 0)
     (area 96.444999 73.584999 151.205001 87.705001)
     (thickness 1.6)
-    (drawings 4)
+    (drawings 5)
     (tracks 233)
     (zones 0)
     (modules 28)
@@ -1075,6 +1075,9 @@
     )
   )
 
+  (gr_text "SloTag v0.1\nBen Kempke" (at 102.743 82.677 90) (layer F.SilkS)
+    (effects (font (size 0.762 0.762) (thickness 0.1905)))
+  )
   (gr_line (start 96.52 73.66) (end 96.52 87.63) (layer Edge.Cuts) (width 0.15))
   (gr_line (start 151.13 73.66) (end 96.52 73.66) (layer Edge.Cuts) (width 0.15))
   (gr_line (start 151.13 87.63) (end 151.13 73.66) (layer Edge.Cuts) (width 0.15))
