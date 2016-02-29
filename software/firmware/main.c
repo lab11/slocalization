@@ -110,14 +110,14 @@ int main(void)
      - Enter the Standby mode.
   */
 
-  /* Disable all used wakeup sources: PWR_WAKEUP_PIN3 */
-  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN3);
+  /* Disable all used wakeup sources: PWR_WAKEUP_PIN1 */
+  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);
 
   /* Clear all related wakeup flags*/
   __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
     
-  /* Enable WakeUp Pin PWR_WAKEUP_PIN3 connected to PA.02 (Arduino A7) */
-  HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN3);
+  /* Enable WakeUp Pin PWR_WAKEUP_PIN1 connected to PA.02 (Arduino A7) */
+  HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
 
   /* Enter the Standby mode */
   HAL_PWR_EnterSTANDBYMode();
@@ -201,7 +201,7 @@ void Error_Handler(void)
   *         The system Power is configured as follow : 
   *            + VREFINT OFF, with fast wakeup enabled
   *            + No IWDG
-  *            + Wakeup using PWR_WAKEUP_PIN3
+  *            + Wakeup using PWR_WAKEUP_PIN1
   * @param None
   * @retval None
   */

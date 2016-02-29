@@ -3,35 +3,21 @@ PROJECT_NAME = $(shell basename "$(realpath ./)")
 #List all of the application source files that need to be compiled
 #############################################
 APPLICATION_SRCS = $(notdir $(wildcard ./*.c))
-APPLICATION_SRCS += led.c
-APPLICATION_SRCS += timer.c
-APPLICATION_SRCS += prng.c
-APPLICATION_SRCS += delay.c
 
-APPLICATION_SRCS += stm32f0xx_gpio.c
-APPLICATION_SRCS += stm32f0xx_rcc.c
-APPLICATION_SRCS += stm32f0xx_i2c.c
-APPLICATION_SRCS += stm32f0xx_dma.c
-APPLICATION_SRCS += stm32f0xx_misc.c
-APPLICATION_SRCS += stm32f0xx_tim.c
-APPLICATION_SRCS += stm32f0xx_spi.c
-APPLICATION_SRCS += stm32f0xx_pwr.c
-APPLICATION_SRCS += stm32f0xx_exti.c
-APPLICATION_SRCS += stm32f0xx_syscfg.c
+APPLICATION_SRCS += stm32l0xx_hal.c
+APPLICATION_SRCS += stm32l0xx_hal_pwr.c
+APPLICATION_SRCS += stm32l0xx_hal_pwr_ex.c
+APPLICATION_SRCS += stm32l0xx_hal_gpio.c
+APPLICATION_SRCS += stm32l0xx_hal_cortex.c
+APPLICATION_SRCS += stm32l0xx_hal_rcc.c
 
-APPLICATION_SRCS += stm32f0xx_i2c_cpal.c
-APPLICATION_SRCS += stm32f0xx_i2c_cpal_hal.c
-
-APPLICATION_SRCS += deca_device.c
-APPLICATION_SRCS += deca_params_init.c
-
-CFLAGS += 
+CFLAGS += -D STM32L051xx
 LDFLAGS += -lm
 
 #The exact STM part number All CAPS
 ############################################
-DEVICE ?= STM32L051K6
-DEVICE_FAMILY ?= STM32L051
+DEVICE ?= STM32L051K8
+DEVICE_FAMILY ?= STM32L051xx
 
 CFLAGS += -Wall -Wextra -g
 
