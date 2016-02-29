@@ -43,6 +43,24 @@
 #include "stm32l0xx_hal.h"
 #include "stm32l0xx_nucleo_32.h"
 
+#define I2Cx				I2C1
+#define I2Cx_CLK_ENABLE()		__HAL_RCC_I2C1_CLK_ENABLE()
+#define I2Cx_SDA_GPIO_CLK_ENABLE()	__HAL_RCC_GPIOB_CLK_ENABLE()
+#define I2Cx_SCL_GPIO_CLK_ENABLE()	__HAL_RCC_GPIOB_CLK_ENABLE()
+
+#define I2Cx_FORCE_RESET()		__HAL_RCC_I2C1_FORCE_RESET()
+#define I2Cx_RELEASE_RESET()		__HAL_RCC_I2C1_RELEASE_RESET()
+
+#define I2Cx_SCL_PIN			GPIO_PIN_6
+#define I2Cx_SCL_GPIO_PORT		GPIOB
+#define I2Cx_SCL_AF			GPIO_AF1_I2C1
+#define I2Cx_SDA_PIN			GPIO_PIN_7
+#define I2Cx_SDA_GPIO_PORT		GPIOB
+#define I2Cx_SDA_AF			GPIO_AF1_I2C1
+
+#define I2Cx_IRQn			I2C1_IRQn
+#define I2Cx_IRQHandler			I2C1_IRQHandler
+
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/

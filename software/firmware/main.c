@@ -47,6 +47,12 @@
   * @{
   */
 
+I2C_HandleTypeDef I2CxHandle;
+
+#define I2C_ADDRESS 0xD2
+
+#define I2C_TIMING_100KHZ 0x10A13E56
+  
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -54,6 +60,14 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void SystemPower_Config(void);
+
+void Ambiq_0805_Command(uint8_t command, uint8_t data_byte){
+  uint8_t tx_buffer[2];
+  tx_buffer[0] = command;
+  tx_buffer[1] = data_byte;
+  while(HAL_I2C_Master_Transmit_IT(&I2CxHandle, (uint16_t)I2C_ADDRESS, (uint8_t*)tx_buffer, 2) != HAL_OK){ /* TODO: Add some error handling? */ };
+  while(HAL_I2C_GetState(&I2CxHandle) != HAL_I2C_STATE_READY){}
+}
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -98,9 +112,27 @@ int main(void)
 
   /* Turn on LED3 */
   BSP_LED_On(LED3);
+  HAL_Delay(200);
+  BSP_LED_Off(LED3);
+  HAL_Delay(200);
+  BSP_LED_On(LED3);
 
   /* Insert 5 seconds delay */
   HAL_Delay(5000);
+
+  I2CxHandle.Instance = I2Cx;
+  I2CxHandle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  I2CxHandle.Init.Timing = I2C_TIMING_100KHZ;
+  I2CxHandle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  I2CxHandle.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  I2CxHandle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  I2CxHandle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  I2CxHandle.Init.OwnAddress1 = I2C_ADDRESS;
+  I2CxHandle.Init.OwnAddress2 = 0xFE;
+  if(HAL_I2C_Init(&I2CxHandle) != HAL_OK){ /* TODO: Add some error handling? */ }
+
+  Ambiq_0805_Command(0x13, 0x8F);
+  Ambiq_0805_Command(0x11, 0x01);
 
  /* The Following Wakeup sequence is highly recommended prior to each Standby mode entry
     mainly when using more than one wakeup source this is to not miss any wakeup event.
