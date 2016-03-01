@@ -11,6 +11,8 @@ APPLICATION_SRCS += stm32l0xx_hal_gpio.c
 APPLICATION_SRCS += stm32l0xx_hal_cortex.c
 APPLICATION_SRCS += stm32l0xx_hal_rcc.c
 APPLICATION_SRCS += stm32l0xx_hal_i2c.c
+APPLICATION_SRCS += stm32l0xx_hal_rtc.c
+APPLICATION_SRCS += stm32l0xx_hal_rtc_ex.c
 
 CFLAGS += -D STM32L051xx
 LDFLAGS += -lm

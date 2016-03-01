@@ -48,7 +48,19 @@
   */
 
 I2C_HandleTypeDef I2CxHandle;
+RTC_HandleTypeDef RtcHandle;
+GPIO_InitTypeDef  GPIO_InitStruct;
 
+const uint8_t pn_sequence[2] = {0x12, 0x34};
+const uint8_t pn_sequence_length = 16;
+
+/* Pin definitions */
+#define DFF_PORT GPIOB
+#define DFF_CLK_PIN GPIO_PIN_1
+#define DFF_DATA0_PIN GPIO_PIN_0
+#define DFF_DATA1_PIN GPIO_PIN_4
+
+#define RESET_COUNT_REGISTER 2
 #define I2C_ADDRESS 0xD2
 
 #define I2C_TIMING_100KHZ 0x10A13E56
@@ -78,6 +90,9 @@ void Ambiq_0805_Command(uint8_t command, uint8_t data_byte){
   */
 int main(void)
 {
+  uint32_t reset_count;
+  uint32_t pn_sequence_byte;
+  uint8_t pn_sequence_bit;
   /* STM32L0xx HAL library initialization:
        - Configure the Flash prefetch, Flash preread and Buffer caches
        - Systick timer is configured by default as source of time base, but user 
@@ -89,25 +104,44 @@ int main(void)
      */
   HAL_Init();
 
-  /* Configure LED3 */
-  BSP_LED_Init(LED3);
-
   /* Configure the system clock to 2 MHz */
   SystemClock_Config();
 
   /* System Power Configuration */
   SystemPower_Config()  ;
-  
+
+  // Configure DFF outputs
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  // Configure DFF clock pin
+  GPIO_InitStruct.Pin = DFF_CLK_PIN;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(DFF_PORT, &GPIO_InitStruct);
+  HAL_GPIO_WritePin(DFF_PORT, DFF_CLK_PIN, GPIO_PIN_RESET);
+
+  // Configure DFF0 Data
+  GPIO_InitStruct.Pin = DFF_DATA0_PIN;
+  HAL_GPIO_Init(DFF_PORT, &GPIO_InitStruct);
+
+  // Configure DFF1 Data
+  GPIO_InitStruct.Pin = DFF_DATA1_PIN;
+  HAL_GPIO_Init(DFF_PORT, &GPIO_InitStruct);
+
+  RtcHandle.Instance = RTC;
+  __HAL_RCC_PWR_CLK_ENABLE();
+  HAL_PWR_EnableBkUpAccess();
+ 
   /* Check if the system was resumed from Standby mode */ 
   if (__HAL_PWR_GET_FLAG(PWR_FLAG_SB) != RESET)
   {
+    reset_count = HAL_RTCEx_BKUPRead(&RtcHandle, RESET_COUNT_REGISTER);
+    reset_count++;
+
     /* Clear Standby flag */
     __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB); 
-    ///* Blink LED3 to indicate that the system was resumed from Standby mode */
-    //BSP_LED_On(LED3);
-    //HAL_Delay(200);
-    //BSP_LED_Off(LED3);
-    //HAL_Delay(200);
+
   } else {
     /* Insert 5 seconds delay */
     HAL_Delay(5000);
@@ -123,10 +157,29 @@ int main(void)
     I2CxHandle.Init.OwnAddress2 = 0xFE;
     if(HAL_I2C_Init(&I2CxHandle) != HAL_OK){ /* TODO: Add some error handling? */ }
 
+    reset_count = 0;
+
     Ambiq_0805_Command(0x13, 0x8F);
     Ambiq_0805_Command(0x12, 0xA4);
     Ambiq_0805_Command(0x11, 0x03);
     Ambiq_0805_Command(0x18, 0x3C);
+  }
+
+  // Write new reset count to backup register
+  HAL_RTCEx_BKUPWrite(&RtcHandle, RESET_COUNT_REGISTER, reset_count);
+
+  // Get current PN bit
+  reset_count %= pn_sequence_length;
+  pn_sequence_byte = reset_count >> 3;
+  pn_sequence_bit = pn_sequence[pn_sequence_byte] & (0x80 >> (reset_count & 7));
+  if(pn_sequence_bit){
+    HAL_GPIO_WritePin(DFF_PORT, DFF_DATA0_PIN, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(DFF_PORT, DFF_DATA1_PIN, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(DFF_PORT, DFF_CLK_PIN, GPIO_PIN_SET);
+  } else {
+    HAL_GPIO_WritePin(DFF_PORT, DFF_DATA0_PIN, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(DFF_PORT, DFF_DATA1_PIN, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(DFF_PORT, DFF_CLK_PIN, GPIO_PIN_SET);
   }
 
  /* The Following Wakeup sequence is highly recommended prior to each Standby mode entry
