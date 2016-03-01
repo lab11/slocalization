@@ -103,36 +103,31 @@ int main(void)
   {
     /* Clear Standby flag */
     __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB); 
-    /* Blink LED3 to indicate that the system was resumed from Standby mode */
-    BSP_LED_On(LED3);
-    HAL_Delay(200);
-    BSP_LED_Off(LED3);
-    HAL_Delay(200);
+    ///* Blink LED3 to indicate that the system was resumed from Standby mode */
+    //BSP_LED_On(LED3);
+    //HAL_Delay(200);
+    //BSP_LED_Off(LED3);
+    //HAL_Delay(200);
+  } else {
+    /* Insert 5 seconds delay */
+    HAL_Delay(5000);
+
+    I2CxHandle.Instance = I2Cx;
+    I2CxHandle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+    I2CxHandle.Init.Timing = I2C_TIMING_100KHZ;
+    I2CxHandle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+    I2CxHandle.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+    I2CxHandle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+    I2CxHandle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+    I2CxHandle.Init.OwnAddress1 = I2C_ADDRESS;
+    I2CxHandle.Init.OwnAddress2 = 0xFE;
+    if(HAL_I2C_Init(&I2CxHandle) != HAL_OK){ /* TODO: Add some error handling? */ }
+
+    Ambiq_0805_Command(0x13, 0x8F);
+    Ambiq_0805_Command(0x12, 0xA4);
+    Ambiq_0805_Command(0x11, 0x03);
+    Ambiq_0805_Command(0x18, 0x3C);
   }
-
-  /* Turn on LED3 */
-  BSP_LED_On(LED3);
-  HAL_Delay(200);
-  BSP_LED_Off(LED3);
-  HAL_Delay(200);
-  BSP_LED_On(LED3);
-
-  /* Insert 5 seconds delay */
-  HAL_Delay(5000);
-
-  I2CxHandle.Instance = I2Cx;
-  I2CxHandle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  I2CxHandle.Init.Timing = I2C_TIMING_100KHZ;
-  I2CxHandle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  I2CxHandle.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  I2CxHandle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  I2CxHandle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  I2CxHandle.Init.OwnAddress1 = I2C_ADDRESS;
-  I2CxHandle.Init.OwnAddress2 = 0xFE;
-  if(HAL_I2C_Init(&I2CxHandle) != HAL_OK){ /* TODO: Add some error handling? */ }
-
-  Ambiq_0805_Command(0x13, 0x8F);
-  Ambiq_0805_Command(0x11, 0x01);
 
  /* The Following Wakeup sequence is highly recommended prior to each Standby mode entry
     mainly when using more than one wakeup source this is to not miss any wakeup event.
