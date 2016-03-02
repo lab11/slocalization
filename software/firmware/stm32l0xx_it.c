@@ -53,7 +53,7 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-extern I2C_HandleTypeDef I2CxHandle;
+extern I2C_HandleTypeDef* I2CxHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -162,8 +162,8 @@ void SysTick_Handler(void)
 
 void I2Cx_IRQHandler(void)
 {
-  HAL_I2C_EV_IRQHandler(&I2CxHandle);
-  HAL_I2C_ER_IRQHandler(&I2CxHandle);
+  HAL_I2C_EV_IRQHandler(I2CxHandle);
+  HAL_I2C_ER_IRQHandler(I2CxHandle);
 }
 
 /******************************************************************************/

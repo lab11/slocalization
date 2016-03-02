@@ -47,7 +47,8 @@
   * @{
   */
 
-I2C_HandleTypeDef I2CxHandle;
+I2C_HandleTypeDef* I2CxHandle;
+
 RTC_HandleTypeDef RtcHandle;
 GPIO_InitTypeDef  GPIO_InitStruct;
 
@@ -77,8 +78,8 @@ void Ambiq_0805_Command(uint8_t command, uint8_t data_byte){
   uint8_t tx_buffer[2];
   tx_buffer[0] = command;
   tx_buffer[1] = data_byte;
-  while(HAL_I2C_Master_Transmit_IT(&I2CxHandle, (uint16_t)I2C_ADDRESS, (uint8_t*)tx_buffer, 2) != HAL_OK){ /* TODO: Add some error handling? */ };
-  while(HAL_I2C_GetState(&I2CxHandle) != HAL_I2C_STATE_READY){}
+  while(HAL_I2C_Master_Transmit_IT(I2CxHandle, (uint16_t)I2C_ADDRESS, (uint8_t*)tx_buffer, 2) != HAL_OK){ /* TODO: Add some error handling? */ };
+  while(HAL_I2C_GetState(I2CxHandle) != HAL_I2C_STATE_READY){}
 }
 
 /* Private functions ---------------------------------------------------------*/
@@ -145,19 +146,23 @@ int main(void)
     __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB); 
 
   } else {
+    I2C_HandleTypeDef I2CxHandleLocal = {0};
+
     /* Insert 5 seconds delay */
     HAL_Delay(5000);
 
-    I2CxHandle.Instance = I2Cx;
-    I2CxHandle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-    I2CxHandle.Init.Timing = I2C_TIMING_100KHZ;
-    I2CxHandle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-    I2CxHandle.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-    I2CxHandle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-    I2CxHandle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-    I2CxHandle.Init.OwnAddress1 = I2C_ADDRESS;
-    I2CxHandle.Init.OwnAddress2 = 0xFE;
-    if(HAL_I2C_Init(&I2CxHandle) != HAL_OK){ /* TODO: Add some error handling? */ }
+    I2CxHandleLocal.Instance = I2Cx;
+    I2CxHandleLocal.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+    I2CxHandleLocal.Init.Timing = I2C_TIMING_100KHZ;
+    I2CxHandleLocal.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+    I2CxHandleLocal.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+    I2CxHandleLocal.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+    I2CxHandleLocal.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+    I2CxHandleLocal.Init.OwnAddress1 = I2C_ADDRESS;
+    I2CxHandleLocal.Init.OwnAddress2 = 0xFE;
+
+    I2CxHandle = &I2CxHandleLocal;
+    if(HAL_I2C_Init(I2CxHandle) != HAL_OK){ /* TODO: Add some error handling? */ }
 
     reset_count = 0;
 
