@@ -50,7 +50,6 @@
 I2C_HandleTypeDef* I2CxHandle;
 
 RTC_HandleTypeDef RtcHandle;
-GPIO_InitTypeDef  GPIO_InitStruct;
 
 const uint8_t pn_sequence[2] = {0x12, 0x34};
 const uint8_t pn_sequence_length = 16;
@@ -116,6 +115,7 @@ int main(void)
   // Configure DFF outputs
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
+  GPIO_InitTypeDef  GPIO_InitStruct;
   // Configure DFF clock pin
   GPIO_InitStruct.Pin = DFF_CLK_PIN;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
