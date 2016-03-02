@@ -88,7 +88,7 @@ void Ambiq_0805_Command(uint8_t command, uint8_t data_byte){
   * @param  None
   * @retval None
   */
-int main(void)
+int Reset_Handler(void)
 {
   uint32_t reset_count;
   uint32_t pn_sequence_byte;
