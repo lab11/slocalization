@@ -102,7 +102,9 @@ int main(void)
              handled in milliseconds basis.
        - Low Level Initialization
      */
-  HAL_Init();
+
+  //Commented out during speed-up work; doesn't seem to make a difference
+  //HAL_Init();
 
   /* Configure the system clock to 2 MHz */
   SystemClock_Config();
