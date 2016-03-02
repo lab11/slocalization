@@ -106,8 +106,11 @@ int main(void)
   //Commented out during speed-up work; doesn't seem to make a difference
   //HAL_Init();
 
-  /* Configure the system clock to 2 MHz */
-  SystemClock_Config();
+  if (! (__HAL_PWR_GET_FLAG(PWR_FLAG_SB) != RESET) ) {
+    /* Configure the system clock to 2 MHz */
+    SystemClock_Config();
+  }
+
 
   /* System Power Configuration */
   SystemPower_Config()  ;
