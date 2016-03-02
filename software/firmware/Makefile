@@ -17,6 +17,9 @@ APPLICATION_SRCS += stm32l0xx_hal_rtc_ex.c
 CFLAGS += -D STM32L051xx
 LDFLAGS += -lm
 
+CFLAGS += -flto
+LDFLAGS += -flto
+
 #The exact STM part number All CAPS
 ############################################
 DEVICE ?= STM32L051K8
