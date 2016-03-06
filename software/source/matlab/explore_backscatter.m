@@ -1,8 +1,77 @@
+clear all;
+
+gold_code = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1]*2-1;
+gold_len = length(gold_code);
+
+num_valid_cir_points = 1016;
+data_segment_len = 8 + 1024*4 + 2 + 4 + 4;
+timestamp_to_one_second = 1*499.2e6*128;
+
+file_name = 'out.bin';
+file_info = dir(file_name);
+file_size = file_info.bytes;
+num_data_segments = floor(file_size/data_segment_len);
+timestamps = zeros(num_data_segments,1);
+
+fid = fopen(file_name,'r');
+phase_offset = 0;
+
+% Get the first timestamp to start things off and know what to base everything off of
+overflow_cumsum = 0;
+for ii=0:num_data_segments-1
+	fseek(fid,ii*data_segment_len,'bof');
+	timestamps(ii+1) = fread(fid,1,'uint64') + overflow_cumsum;
+	if ii > 0 && timestamps(ii+1) < timestamps(ii)
+		timestamps(ii+1) = timestamps(ii+1) + 2^40;
+		overflow_cumsum = overflow_cumsum + 2^40;
+	end
+end
+
+% OPTIONAL: Cut off excess?
+gold_accum = zeros(gold_len,num_valid_cir_points);
+gold_accum_num = zeros(gold_len,1);
+gold_bits = zeros(num_data_segments,1);
+rxpaccs = zeros(num_data_segments,1);
+round_nums = zeros(num_data_segments,1);
+for ii=0:num_data_segments-1
+	fseek(fid,ii*data_segment_len+8,'bof');
+	cur_cir_data = fread(fid,num_valid_cir_points*2,'int16');
+	cur_cir_data = cur_cir_data(1:2:end) + 1i*cur_cir_data(2:2:end);
+	fseek(fid,(ii+1)*data_segment_len-10,'bof');
+	round_nums(ii+1) = fread(fid,1,'uint32');
+	fp_idx = fread(fid,1,'uint16');
+	finfo = fread(fid,1,'uint32');
+	rxpaccs(ii+1) = bitand(finfo,hex2dec('FFF00000'))/2^20;
+
+	cur_cir_data = cur_cir_data./rxpaccs(ii+1);
+
+	time_offset = (timestamps(ii+1) - timestamps(1))/timestamp_to_one_second+0.5;
+	cur_gold_bit = mod(floor(time_offset),gold_len)+1;
+	gold_accum(cur_gold_bit,:) = gold_accum(cur_gold_bit,:) + cur_cir_data.';
+	gold_accum_num(cur_gold_bit) = gold_accum_num(cur_gold_bit) + 1;
+	gold_bits(ii+1) = cur_gold_bit;
+end
+
+%Normalize to the number of accumulated CIRs in each set
+gold_accum = gold_accum./repmat(gold_accum_num,[1,num_valid_cir_points]);
+%gold_accum = abs(gold_accum);
+%gold_accum = gold_accum-repmat(median(gold_accum),[gold_len,1]);
+
+%Perform cross correlation across accumulated CIRs
+gold_corrs = zeros(gold_len, num_valid_cir_points);
+for ii=0:gold_len-1
+	gold_rotated = circshift(gold_code.',ii);
+	pn_ones = find(gold_rotated == 1);
+	pn_zeros = find(gold_rotated == -1);
+	pn_ones_mean = sum(gold_accum(pn_ones,:),1)./length(pn_ones);
+	pn_zeros_mean = sum(gold_accum(pn_zeros,:),1)./length(pn_zeros);
+	
+	gold_corrs(ii+1,:) = pn_ones_mean - pn_zeros_mean;%sum(gold_accum.*repmat(gold_rotated,[1,num_valid_cir_points]),1);
+end
+return;
+
 INTERP_SIZE = 2^16;
 %TOA_THRESH = 0.5;
-
-gold_code = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1]-.5;
-gold_len = length(gold_code);
 
 disp('Reading CIRs from file...')
 [cirs, packet_idxs] = readBackScatterData('backscatter_test4_stationary.csv');
