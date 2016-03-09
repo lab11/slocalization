@@ -32,20 +32,50 @@ gold_accum = zeros(gold_len,num_valid_cir_points);
 gold_accum_num = zeros(gold_len,1);
 gold_bits = zeros(num_data_segments,1);
 rxpaccs = zeros(num_data_segments,1);
+cir_pwrs = zeros(num_data_segments,1);
 round_nums = zeros(num_data_segments,1);
+fp_idxs = zeros(num_data_segments,1);
+cirs = zeros(1000,num_valid_cir_points);
+rxpaccs_mod = zeros(1000,1);
+mags = zeros(num_data_segments,1);
 for ii=0:num_data_segments-1
+	%if ii < 1e4 || ii > 2.3e4
+	%if ii < 2e4
+	%	continue;
+	%end
 	fseek(fid,ii*data_segment_len+8,'bof');
 	cur_cir_data = fread(fid,num_valid_cir_points*2,'int16');
 	cur_cir_data = cur_cir_data(1:2:end) + 1i*cur_cir_data(2:2:end);
 	fseek(fid,(ii+1)*data_segment_len-10,'bof');
 	round_nums(ii+1) = fread(fid,1,'uint32');
 	fp_idx = fread(fid,1,'uint16');
+	%if fp_idx < 4.803e4 || fp_idx > 4.806e4
+	%	continue;
+	%end
+	fp_idxs(ii+1) = fp_idx;
 	finfo = fread(fid,1,'uint32');
-	rxpaccs(ii+1) = bitand(finfo,hex2dec('FFF00000'))/2^20;
+	%rxpaccs(ii+1) = bitand(finfo,hex2dec('FFF00000'))/2^20;
+	cir_pwrs(ii+1) = bitand(finfo,hex2dec('0000FFFF'));
+
+	%%UNSYNCHRONIZED: Rotate CIRs back to t = 0
+	%cur_cir_data_fft = fft(cur_cir_data);
+	%cur_cir_data_fft = cur_cir_data_fft.*exp(1i*2*pi*fftshift(0:num_valid_cir_points-1).*fp_idx./64./num_valid_cir_points).';
+	%cur_cir_data = ifft(cur_cir_data_fft);
+
+	rxpaccs(ii+1) = abs(cur_cir_data(752));%sum(abs(cur_cir_data(754:764)));
+	if(rxpaccs(ii+1) < 1e4)
+		continue;
+	end
+	cur_cir_data = cur_cir_data.*exp(-1i*angle(cur_cir_data(752)));
+	
 
 	cur_cir_data = cur_cir_data./rxpaccs(ii+1);
+	mags(ii+1) = cur_cir_data(757);
 
-	time_offset = (timestamps(ii+1) - timestamps(1))/timestamp_to_one_second+0.5;
+	cirs(mod(ii,1000)+1,:) = cur_cir_data;
+	rxpaccs_mod(mod(ii,1000)+1) = rxpaccs(ii+1);
+
+	time_offset = (timestamps(ii+1) - timestamps(1))/timestamp_to_one_second + 0.5;
 	cur_gold_bit = mod(floor(time_offset),gold_len)+1;
 	gold_accum(cur_gold_bit,:) = gold_accum(cur_gold_bit,:) + cur_cir_data.';
 	gold_accum_num(cur_gold_bit) = gold_accum_num(cur_gold_bit) + 1;
@@ -54,6 +84,7 @@ end
 
 %Normalize to the number of accumulated CIRs in each set
 gold_accum = gold_accum./repmat(gold_accum_num,[1,num_valid_cir_points]);
+gold_accum = gold_accum-repmat(median(gold_accum,1),[gold_len,1]);
 %gold_accum = abs(gold_accum);
 %gold_accum = gold_accum-repmat(median(gold_accum),[gold_len,1]);
 
@@ -63,8 +94,8 @@ for ii=0:gold_len-1
 	gold_rotated = circshift(gold_code.',ii);
 	pn_ones = find(gold_rotated == 1);
 	pn_zeros = find(gold_rotated == -1);
-	pn_ones_mean = sum(gold_accum(pn_ones,:),1)./length(pn_ones);
-	pn_zeros_mean = sum(gold_accum(pn_zeros,:),1)./length(pn_zeros);
+	pn_ones_mean = sum(gold_accum(pn_ones,:),1);
+	pn_zeros_mean = sum(gold_accum(pn_zeros,:),1);
 	
 	gold_corrs(ii+1,:) = pn_ones_mean - pn_zeros_mean;%sum(gold_accum.*repmat(gold_rotated,[1,num_valid_cir_points]),1);
 end
