@@ -186,9 +186,10 @@ int Reset_Handler(void)
   HAL_RTCEx_BKUPWrite(&RtcHandle, RESET_COUNT_REGISTER, reset_count);
 
   // Get current PN bit
-  reset_count %= pn_sequence_length;
-  pn_sequence_byte = reset_count >> 3;
-  pn_sequence_bit = pn_sequence[pn_sequence_byte] & (0x80 >> (reset_count & 7));
+  reset_count %= (pn_sequence_length << 1);
+  pn_sequence_byte = reset_count >> 4;
+  pn_sequence_bit = (pn_sequence[pn_sequence_byte] & (0x80 >> ((reset_count >> 1) & 7))) > 0;
+  pn_sequence_bit = (reset_count & 1) ^ pn_sequence_bit;
   if(pn_sequence_bit){
     HAL_GPIO_WritePin(DFF_PORT, DFF_DATA0_PIN, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(DFF_PORT, DFF_DATA1_PIN, GPIO_PIN_SET);
