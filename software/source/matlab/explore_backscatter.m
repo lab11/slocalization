@@ -3,10 +3,10 @@ clear all;
 gold_code = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1]*2-1;
 gold_len = length(gold_code);
 
-num_valid_cir_points = 1016;
+num_valid_cir_points = 128;
 repetition_rate = 0.05; % Approximate number of seconds between beacon transmissions
 chip_rate = 1; % Modulation rate of slocalization tag
-data_segment_len = 8 + 1024*4 + 2 + 4 + 4;
+data_segment_len = 8 + 512 + 2 + 4 + 4;
 timestamp_to_one_second = 1*499.2e6*128;
 
 file_name = 'out.bin';
@@ -31,7 +31,6 @@ end
 gold_corrs_full = zeros(4, gold_len, num_valid_cir_points);
 median_bit_periods = zeros(1000,num_valid_cir_points);
 median_bit_periods_num = 0;
-blah = zeros(num_data_segments,1);
 for time_idx = 0:3
 	% OPTIONAL: Cut off excess?
 	gold_accum = zeros(gold_len,num_valid_cir_points);
@@ -42,7 +41,6 @@ for time_idx = 0:3
 	round_nums = zeros(num_data_segments,1);
 	fp_idxs = zeros(num_data_segments,1);
 	cirs = zeros(num_data_segments,num_valid_cir_points);
-	rxpaccs_mod = zeros(1000,1);
 	bit_period_median_filter = zeros(ceil(chip_rate/repetition_rate), num_valid_cir_points);
 	bit_period_chips = zeros(ceil(chip_rate/repetition_rate),1);
 	bit_period_num = 0;
@@ -69,21 +67,20 @@ for time_idx = 0:3
 		%cur_cir_data = ifft(cur_cir_data_fft);
 	
 		%Normalize by the magnitude of leading edge
-		rxpaccs(ii+1) = abs(cur_cir_data(750));%sum(abs(cur_cir_data(754:764)));%
+		%norm_factor = abs(cur_cir_data(4));%sum(abs(cur_cir_data(754:764)));%
 		%if(rxpaccs(ii+1) < 1e4)
 		%	continue;
 		%end
-		cur_cir_data = cur_cir_data.*exp(-1i*angle(cur_cir_data(750)));
+		%cur_cir_data = cur_cir_data.*exp(-1i*angle(cur_cir_data(4)));
+		cur_cir_data = abs(cur_cir_data);
 		
 	
-		%cur_cir_data = cur_cir_data./rxpaccs(ii+1);
+		%cur_cir_data = cur_cir_data./norm_factor;
 	
 		cirs(ii+1,:) = cur_cir_data;
-		rxpaccs_mod(mod(ii,1000)+1) = rxpaccs(ii+1);
 	
 		chip_number = floor((timestamps(ii+1) - timestamps(1))/timestamp_to_one_second + time_offset) + 1;
 		bit_number = floor((chip_number-1)/2) + 1;
-		blah(ii+1) = cur_cir_data(757);
 
 		% Check to see if we've transitioned a bit, in which case we need to go back, median filter, and extract manchester-encoded 
 		% bit CIRs
@@ -130,69 +127,7 @@ for time_idx = 0:3
 end
 for ii=1:4
 	subplot(2,2,ii);
-	imagesc(squeeze(abs(gold_corrs_full(ii,:,750:800))))
+	imagesc(squeeze(abs(gold_corrs_full(ii,:,:))))
 end
 
 return;
-
-INTERP_SIZE = 2^16;
-%TOA_THRESH = 0.5;
-
-disp('Reading CIRs from file...')
-[cirs, packet_idxs] = readBackScatterData('backscatter_test4_stationary.csv');
-
-disp('Correlating CIRs...')
-result_len = floor(size(cirs,2)/2)-2;
-diff_plus_two = zeros(INTERP_SIZE,result_len);
-diff_plus_one = zeros(INTERP_SIZE,result_len);
-diff_angle_two = zeros(result_len,1);
-diff_angle_one = zeros(result_len,1);
-phase_corrections = zeros(result_len, 4);
-backscatter_toas = zeros(result_len,1);
-expected_phase_angle_error = zeros(result_len,1);
-
-cirs_aligned = zeros(INTERP_SIZE, size(cirs,2));
-pops = zeros(size(cirs,2),1);
-for ii=2:size(cirs,2)
-    [poa1, poa2, pop1, pop2] = lineUpCIRs(cirs(:,1),cirs(:,ii),INTERP_SIZE);
-    cirs_aligned(:,1) = poa1;
-    cirs_aligned(:,ii) = poa2;
-    [max_abs,max_idx] = max(abs(poa2));
-    pops(ii) = max_abs;
-end
-
-gold_corrs = zeros(INTERP_SIZE,size(cirs,2)-gold_len);
-for ii=1:size(cirs,2)-gold_len
-    disp(['ii = ',num2str(ii)])
-    
-    gold_corr = zeros(INTERP_SIZE,1);
-    for jj=1:gold_len
-        gold_corr = gold_corr + cirs_aligned(:,ii+jj-1)*gold_code(jj);
-    end
-    gold_corrs(:,ii) = gold_corr;
-%     cir = cirs(:,ii);
-%     cir_plus_1 = cirs(:,ii+1);
-%     cir_plus_2 = cirs(:,ii+2);
-%     [poa1, poa2, pop1, pop2] = lineUpCIRs(cir,cir_plus_1,INTERP_SIZE);
-%     [pta1, pta2, ptp1, ptp2] = lineUpCIRs(cir,cir_plus_2,INTERP_SIZE);
-%     
-%     poa1 = poa1/max(abs(poa1));
-%     poa2 = poa2/max(abs(poa2));
-%     pta1 = pta1/max(abs(pta1));
-%     pta2 = pta2/max(abs(pta2));
-%     angle_error_cand(1) = mod((ptp2 + ptp1) / 2 - pop2 + pi,2*pi) - pi;
-%     angle_error_cand(2) = mod((ptp2 + ptp1) / 2 - pop2 + 2*pi,2*pi) - pi;
-%     angle_diff_cand(1) = (ptp2 + ptp1) / 2;
-%     angle_diff_cand(2) = (ptp2 + ptp1) / 2 + pi;
-%     [expected_phase_angle_error(jj), min_idx] = min(abs(angle_error_cand));
-%     
-%     diff_plus_one(:,jj) = (pta1+poa1)/2-poa2*exp(1i*pop2)*exp(-1i*angle_diff_cand(min_idx));
-%     diff_plus_two(:,jj) = pta2-pta1;
-%     diff_angle_one(jj) = pop2-pop1;
-%     diff_angle_two(jj) = ptp2-ptp1;
-%     phase_corrections(jj,:) = [pop1, pop2, ptp1, ptp2];
-%     above_thresh = find(abs(diff_plus_one(:,jj)) > max(abs(diff_plus_one(:,jj)))*TOA_THRESH);
-%     backscatter_toas(jj) = above_thresh(1);
-%    
-%    jj=jj+1;
-end
