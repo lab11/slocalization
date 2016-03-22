@@ -124,8 +124,13 @@ for time_idx = 0:3
 					median_bit_period = median(bit_period_median_filter(tx_antenna_idx,rx_antenna_idx,1:bit_period_num(tx_antenna_idx,rx_antenna_idx),:),1);
 					zero_chip_idxs = find(bit_period_chips(tx_antenna_idx,rx_antenna_idx,1:bit_period_num(tx_antenna_idx,rx_antenna_idx)) == 0);
 					one_chip_idxs = find(bit_period_chips(tx_antenna_idx,rx_antenna_idx,1:bit_period_num(tx_antenna_idx,rx_antenna_idx)) == 1);
-					median_zero_chips = median(squeeze(bit_period_median_filter(tx_antenna_idx,rx_antenna_idx,zero_chip_idxs,:)),1);% - median_bit_period;
-					median_one_chips = median(squeeze(bit_period_median_filter(tx_antenna_idx,rx_antenna_idx,one_chip_idxs,:)),1);% - median_bit_period;
+					zero_chips = squeeze(bit_period_median_filter(tx_antenna_idx,rx_antenna_idx,zero_chip_idxs,:));
+					one_chips = squeeze(bit_period_median_filter(tx_antenna_idx,rx_antenna_idx,one_chip_idxs,:));
+					if(size(zero_chips,1) == 0 || size(one_chips,1) == 0)
+						continue;
+					end
+					median_zero_chips = median(zero_chips,1);% - median_bit_period;
+					median_one_chips = median(one_chips,1);% - median_bit_period;
 					if any(isnan([median_zero_chips,median_one_chips]))
 						continue;
 					end
