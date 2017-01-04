@@ -29,12 +29,39 @@ from optparse import OptionParser
 
 from gnuradio import eng_notation
 
-n2s = eng_notation.num_to_str
+import datetime, time
+
+#Ref: gr-digital/examples/narrowband/digital_bert_rx.py
+import gnuradio.gr.gr_threading as _threading
 
 SAMPLE_RATE = 4e6
 START_FREQ = 3.1e9
 END_FREQ = 4.4e9
 STEP_FREQ = 4e6
+DIRECT_FEED_TIME = 0.01
+STEP_TIME = 0.1
+
+class status_thread(_threading.Thread):
+    def __init__(self, tb):
+        _threading.Thread.__init__(self)
+        self.setDaemon(1)
+        self.tb = tb
+        self.done = False
+        self.start()
+
+    def run(self):
+        next_call = time.time()
+        while not self.done:
+            tb.increment_channel()
+            tb.switch_to_direct_feed()
+            time.sleep(DIRECT_FEED_TIME)
+            tb.switch_to_overair()
+            
+            try:
+                next_call = next_call + STEP_TIME
+                time.sleep(next_call - time.time())
+            except KeyboardInterrupt:
+                self.done = True
 
 class build_block(gr.top_block):
     def __init__(self, args1, args2):
@@ -57,6 +84,7 @@ class build_block(gr.top_block):
         stream_args = uhd.stream_args('fc32')
         self.u_tx = uhd.usrp_sink(device_addr=args1, stream_args=stream_args)
         self.u_tx.set_samp_rate(SAMPLE_RATE)
+        self.center_freq = START_FREQ
         self.u_tx.set_center_freq(START_FREQ)
 
         # Get dboard gain range and select maximum
@@ -92,6 +120,23 @@ class build_block(gr.top_block):
 
         self.connect (self.u_rx, self.rx_dst)
 
+        # Synchronize both USRPs' timebases
+        self.u_rx.set_time_now(uhd.time_spec(0.0))
+        self.u_tx.set_time_now(uhd.time_spec(0.0))
+
+    def increment_channel(self):
+        self.center_freq = self.center_freq + STEP_FREQ
+        if self.center_freq > END_FREQ:
+            self.center_freq = START_FREQ
+        self.u_tx.set_center_freq(self.center_freq)
+        self.u_rx.set_center_freq(self.center_freq)
+
+    def switch_to_direct_feed(self):
+        self.u_rx.set_antenna("RX2")
+
+    def switch_to_overair(self):
+        self.u_rx.set_antenna("TX/RX")
+
 def main ():
     parser = OptionParser (option_class=eng_option)
     parser.add_option("-a1", "--args1", type="string", default="",
@@ -101,10 +146,13 @@ def main ():
     (options, args) = parser.parse_args ()
 
     tb = build_block (options.args1, options.args2)
+    updater = status_thread(tb)
 
-    tb.start ()
-    raw_input ('Press Enter to quit: ')
-    tb.stop ()
+    try:
+        tb.run()
+    except KeyboardInterrupt:
+        updater.done = True
+        updater = None
 
 if __name__ == '__main__':
     main ()
