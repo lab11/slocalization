@@ -52,10 +52,8 @@ class status_thread(_threading.Thread):
     def run(self):
         next_call = time.time()
         while not self.done:
-            tb.increment_channel()
-            tb.switch_to_direct_feed()
-            time.sleep(DIRECT_FEED_TIME)
-            tb.switch_to_overair()
+            self.tb.increment_channel()
+            self.tb.switch_to_overair()
             
             try:
                 next_call = next_call + STEP_TIME
@@ -109,14 +107,15 @@ class build_block(gr.top_block):
             (uhd_type2, args2)
 
         self.u_rx = uhd.usrp_source(device_addr=args2,
-                                    io_type=uhd.io_type.COMPLEX_FLOAT32)
+                                    io_type=uhd.io_type.COMPLEX_FLOAT32,
+                                    num_channels=1)
         self.u_rx.set_samp_rate(SAMPLE_RATE)
         self.u_rx.set_center_freq(START_FREQ)
 
         # Get dboard gain range and select maximum
         rx_gain_range = self.u_rx.get_gain_range()
         rx_gain = rx_gain_range.stop()
-        self.u_rx.set_gain(rx_gain, i)
+        self.u_rx.set_gain(rx_gain, 0)
 
         self.connect (self.u_rx, self.rx_dst)
 
@@ -128,6 +127,7 @@ class build_block(gr.top_block):
         self.center_freq = self.center_freq + STEP_FREQ
         if self.center_freq > END_FREQ:
             self.center_freq = START_FREQ
+        print "Setting frequency to %f" % (self.center_freq)
         self.u_tx.set_center_freq(self.center_freq)
         self.u_rx.set_center_freq(self.center_freq)
 
@@ -139,9 +139,9 @@ class build_block(gr.top_block):
 
 def main ():
     parser = OptionParser (option_class=eng_option)
-    parser.add_option("-a1", "--args1", type="string", default="",
+    parser.add_option("-a", "--args1", type="string", default="addr=192.168.10.13",
                       help="TX UHD device (#1) address args [default=%default]")
-    parser.add_option("-a2", "--args2", type="string", default="",
+    parser.add_option("-A", "--args2", type="string", default="addr=192.168.20.14",
                       help="RX UHD device (#2) address args [default=%default]")
     (options, args) = parser.parse_args ()
 
