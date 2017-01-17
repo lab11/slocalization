@@ -1,0 +1,30 @@
+INCLUDE(FindPkgConfig)
+PKG_CHECK_MODULES(PC_SLOCALIZATION slocalization)
+
+FIND_PATH(
+    SLOCALIZATION_INCLUDE_DIRS
+    NAMES slocalization/api.h
+    HINTS $ENV{SLOCALIZATION_DIR}/include
+        ${PC_SLOCALIZATION_INCLUDEDIR}
+    PATHS ${CMAKE_INSTALL_PREFIX}/include
+          /usr/local/include
+          /usr/include
+)
+
+FIND_LIBRARY(
+    SLOCALIZATION_LIBRARIES
+    NAMES gnuradio-slocalization
+    HINTS $ENV{SLOCALIZATION_DIR}/lib
+        ${PC_SLOCALIZATION_LIBDIR}
+    PATHS ${CMAKE_INSTALL_PREFIX}/lib
+          ${CMAKE_INSTALL_PREFIX}/lib64
+          /usr/local/lib
+          /usr/local/lib64
+          /usr/lib
+          /usr/lib64
+)
+
+INCLUDE(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(SLOCALIZATION DEFAULT_MSG SLOCALIZATION_LIBRARIES SLOCALIZATION_INCLUDE_DIRS)
+MARK_AS_ADVANCED(SLOCALIZATION_LIBRARIES SLOCALIZATION_INCLUDE_DIRS)
+
