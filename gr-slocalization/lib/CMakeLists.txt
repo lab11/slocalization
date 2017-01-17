@@ -26,6 +26,7 @@ include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
 list(APPEND slocalization_sources
+    accumulator_vcvc_impl.cc
 )
 
 set(slocalization_sources "${slocalization_sources}" PARENT_SCOPE)

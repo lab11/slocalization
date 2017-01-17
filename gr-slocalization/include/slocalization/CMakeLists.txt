@@ -22,5 +22,5 @@
 ########################################################################
 install(FILES
     api.h
-    DESTINATION include/slocalization
+    accumulator_vcvc.h DESTINATION include/slocalization
 )
