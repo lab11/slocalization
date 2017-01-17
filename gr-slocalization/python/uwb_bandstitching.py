@@ -34,7 +34,7 @@ import datetime, time
 #Ref: gr-digital/examples/narrowband/digital_bert_rx.py
 import gnuradio.gr.gr_threading as _threading
 
-SAMPLE_RATE = 4e6
+SAMPLE_RATE = 20e6
 START_FREQ = 3.1e9
 END_FREQ = 4.4e9
 STEP_FREQ = 4e6
@@ -82,6 +82,7 @@ class build_block(gr.top_block):
         stream_args = uhd.stream_args('fc32')
         self.u_tx = uhd.usrp_sink(device_addr=args1, stream_args=stream_args)
         self.u_tx.set_samp_rate(SAMPLE_RATE)
+        self.u_tx.set_clock_source("external")
         self.center_freq = START_FREQ
         self.u_tx.set_center_freq(START_FREQ)
 
@@ -110,6 +111,7 @@ class build_block(gr.top_block):
                                     io_type=uhd.io_type.COMPLEX_FLOAT32,
                                     num_channels=1)
         self.u_rx.set_samp_rate(SAMPLE_RATE)
+        self.u_rx.set_clock_source("external")
         self.u_rx.set_center_freq(START_FREQ)
 
         # Get dboard gain range and select maximum
@@ -139,9 +141,9 @@ class build_block(gr.top_block):
 
 def main ():
     parser = OptionParser (option_class=eng_option)
-    parser.add_option("-a", "--args1", type="string", default="addr=192.168.10.13",
+    parser.add_option("-a", "--args1", type="string", default="addr=192.168.20.14",
                       help="TX UHD device (#1) address args [default=%default]")
-    parser.add_option("-A", "--args2", type="string", default="addr=192.168.20.14",
+    parser.add_option("-A", "--args2", type="string", default="addr=192.168.10.13",
                       help="RX UHD device (#2) address args [default=%default]")
     (options, args) = parser.parse_args ()
 
