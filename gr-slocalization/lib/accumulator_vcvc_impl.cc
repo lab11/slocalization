@@ -49,6 +49,7 @@ namespace gr {
       for(int ii=0; ii < vector_len; ii++){
         d_k[ii] = gr_complex(0, 0);
       }
+      set_relative_rate(1./num_accums);
     }
 
     /*

@@ -26,20 +26,23 @@ from gnuradio import blocks
 from gnuradio import uhd
 from gnuradio.eng_option import eng_option
 from optparse import OptionParser
+import slocalization
 
 from gnuradio import eng_notation
+import pmt
 
 import datetime, time
 
 #Ref: gr-digital/examples/narrowband/digital_bert_rx.py
 import gnuradio.gr.gr_threading as _threading
 
-SAMPLE_RATE = 20e6
+SAMPLE_RATE = 25e6
 START_FREQ = 3.1e9
 END_FREQ = 4.4e9
-STEP_FREQ = 4e6
+STEP_FREQ = SAMPLE_RATE
 DIRECT_FEED_TIME = 0.01
 STEP_TIME = 0.1
+SIGNAL_LEN = 10
 
 class status_thread(_threading.Thread):
     def __init__(self, tb):
@@ -70,8 +73,14 @@ class build_block(gr.top_block):
         ##############################
         print "\nTRANSMIT CHAIN"
 
-        #USRP transmits repeating file generated in MATLAB
-        self.tx_src = blocks.file_source(gr.sizeof_gr_complex, "iq_in.dat", True)
+        ##USRP transmits repeating file generated in MATLAB
+        #self.tx_src = blocks.file_source(gr.sizeof_gr_complex, "iq_in.dat", True)
+
+        #USRP transmits a repeating vector generated here...
+        tx_list = [0]*SIGNAL_LEN
+        tx_list[0] = 0.5
+        self.vec_tx_src = blocks.vector_source_c(tuple(tx_list), True, SIGNAL_LEN, [])
+        self.tx_src = blocks.vector_to_stream(gr.sizeof_gr_complex, SIGNAL_LEN)
 
         #Find USRP with device characteristics specified by args1
         d1 = uhd.find_devices(uhd.device_addr(args1))
@@ -83,15 +92,17 @@ class build_block(gr.top_block):
         self.u_tx = uhd.usrp_sink(device_addr=args1, stream_args=stream_args)
         self.u_tx.set_samp_rate(SAMPLE_RATE)
         self.u_tx.set_clock_source("external")
-        self.center_freq = START_FREQ
-        self.u_tx.set_center_freq(START_FREQ)
+        self.center_freq = END_FREQ
+        self.tr = uhd.tune_request(self.center_freq)
+        self.tr.args = uhd.device_addr_t("mode_n=integer")
+        self.u_tx.set_center_freq(self.tr)
 
         # Get dboard gain range and select maximum
         tx_gain_range = self.u_tx.get_gain_range()
         tx_gain = tx_gain_range.stop()
-        self.u_tx.set_gain(tx_gain)
+        self.u_tx.set_gain(tx_gain-19)
 
-        self.connect (self.tx_src, self.u_tx)
+        self.connect (self.vec_tx_src, self.tx_src, self.u_tx)
 
         ##############################
         # RECEIVE CHAIN
@@ -99,7 +110,17 @@ class build_block(gr.top_block):
         print "\nRECEIVE CHAIN"
 
         #USRP logs IQ data to file
-        self.rx_dst = blocks.file_meta_sink(gr.sizeof_gr_complex, "iq_out.dat", SAMPLE_RATE)
+        #This PMT dictionary stuff is stupid, however it's required otherwise the header will become corrupted...
+        key = pmt.intern("rx_freq")
+        val = pmt.from_double(0)
+        extras = pmt.make_dict()
+        extras = pmt.dict_add(extras, key, val)
+        extras = pmt.serialize_str(extras)
+        self.rx_dst = blocks.file_meta_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat", SAMPLE_RATE, extra_dict=extras)#, detached_header=True)
+        #self.rx_dst = blocks.file_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat")
+
+        # Accumulate repeating sequences using custom block
+        self.rx_accum = slocalization.accumulator_vcvc(SIGNAL_LEN, int(1e3))
 
         #Find USRP with device characteristics specified by args1
         d2 = uhd.find_devices(uhd.device_addr(args2))
@@ -112,14 +133,21 @@ class build_block(gr.top_block):
                                     num_channels=1)
         self.u_rx.set_samp_rate(SAMPLE_RATE)
         self.u_rx.set_clock_source("external")
-        self.u_rx.set_center_freq(START_FREQ)
+        self.u_rx.set_center_freq(self.tr)
 
         # Get dboard gain range and select maximum
         rx_gain_range = self.u_rx.get_gain_range()
         rx_gain = rx_gain_range.stop()
         self.u_rx.set_gain(rx_gain, 0)
 
-        self.connect (self.u_rx, self.rx_dst)
+        # Convert stream to vector
+        self.s_to_v = blocks.stream_to_vector(gr.sizeof_gr_complex, SIGNAL_LEN)
+
+        self.connect (self.u_rx, self.s_to_v, self.rx_accum, self.rx_dst)
+
+        # DEBUG: Monitor incoming tags...
+        self.tag_debug = blocks.tag_debug(gr.sizeof_gr_complex*SIGNAL_LEN, "tag_debugger", "")
+        self.connect (self.rx_accum, self.tag_debug)
 
         # Synchronize both USRPs' timebases
         self.u_rx.set_time_now(uhd.time_spec(0.0))
@@ -127,11 +155,13 @@ class build_block(gr.top_block):
 
     def increment_channel(self):
         self.center_freq = self.center_freq + STEP_FREQ
-        if self.center_freq > END_FREQ:
-            self.center_freq = START_FREQ
+        if self.center_freq > END_FREQ - SAMPLE_RATE/2:
+            self.center_freq = START_FREQ + SAMPLE_RATE/2
         print "Setting frequency to %f" % (self.center_freq)
-        self.u_tx.set_center_freq(self.center_freq)
-        self.u_rx.set_center_freq(self.center_freq)
+        self.tr = uhd.tune_request(self.center_freq)
+        self.tr.args = uhd.device_addr_t("mode_n=integer")
+        self.u_tx.set_center_freq(self.tr)
+        self.u_rx.set_center_freq(self.tr)
 
     def switch_to_direct_feed(self):
         self.u_rx.set_antenna("RX2")
