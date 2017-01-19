@@ -37,12 +37,12 @@ import datetime, time
 import gnuradio.gr.gr_threading as _threading
 
 SAMPLE_RATE = 25e6
-START_FREQ = 3.1e9
-END_FREQ = 4.4e9
+START_FREQ = 3.15e9
+END_FREQ = 4.35e9
 STEP_FREQ = SAMPLE_RATE
 DIRECT_FEED_TIME = 0.01
 STEP_TIME = 0.1
-SIGNAL_LEN = 10
+SIGNAL_LEN = 20
 
 class status_thread(_threading.Thread):
     def __init__(self, tb):
@@ -155,8 +155,8 @@ class build_block(gr.top_block):
 
     def increment_channel(self):
         self.center_freq = self.center_freq + STEP_FREQ
-        if self.center_freq > END_FREQ - SAMPLE_RATE/2:
-            self.center_freq = START_FREQ + SAMPLE_RATE/2
+        if self.center_freq > END_FREQ:
+            self.center_freq = START_FREQ
         print "Setting frequency to %f" % (self.center_freq)
         self.tr = uhd.tune_request(self.center_freq)
         self.tr.args = uhd.device_addr_t("mode_n=integer")
