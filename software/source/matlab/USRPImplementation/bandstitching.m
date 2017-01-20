@@ -1,9 +1,11 @@
+function deconvolved = bandstitching(in_header_filename, in_data_filename)
+
 VALID_MEAS_START_IDX = 60;
 
-cal_data = readUSRPData('header_direct.csv','data_direct.dat');
+cal_data = readUSRPData('header_overair_cal.csv','data_overair_cal.dat');
 cal_data = cal_data(:,VALID_MEAS_START_IDX:end,:,:);
 
-overair_data = readUSRPData('header_overair_notag.csv','data_overair_notag.dat');
+overair_data = readUSRPData(in_header_filename,in_data_filename);
 overair_data = overair_data(:,VALID_MEAS_START_IDX:end,:,:);
 
 %For now, let's just use the last bandstitching sweep...
@@ -33,6 +35,7 @@ deconvolved_fft = reshape(deconvolved_fft,[size(deconvolved_fft,1)*size(deconvol
 %Load and apply window function
 load window;
 deconvolved_fft = deconvolved_fft.*repmat(window,[1,size(deconvolved_fft,2)]);
+deconvolved_fft = ifftshift(deconvolved_fft,1);
 
 %Inverse FFT = CIR
 deconvolved = ifft(deconvolved_fft,[],1);
