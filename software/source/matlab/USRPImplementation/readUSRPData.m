@@ -1,4 +1,4 @@
-function ret = readUSRPData(header_csv_filename, data_filename)
+function [meas, meas_times] = readUSRPData(header_csv_filename, data_filename, sample_rate, accum_count)
 
 %testscan is the best bet for reading in the corresponding data found in the header file
 fid = fopen(header_csv_filename,'r');
@@ -9,6 +9,9 @@ fclose(fid);
 nbytes = header_data{5};
 cum_bytes = cumsum(nbytes(1:end-1));
 cum_cplx_idxs = cum_bytes/8; %complex = 8 bytes (float, float)
+
+%rx_time (column 10) says what time each frequency setting command took place
+rx_times = header_data{10};
 
 %nitems (column 1) tells us how many vectors are in each frequency range
 nitems = header_data{1};
@@ -39,4 +42,9 @@ end
 %Remove last observation since it may be corrupted by a frequency change
 seg_data = seg_data(:,1:end-1,:,:);
 
-ret = seg_data;
+meas = seg_data;
+meas_times = reshape(rx_times(1:num_freq_bins*num_reps), [num_freq_bins,num_reps]);
+
+%Get interpolated time based on sample rate and accumulation count
+meas_times = repmat(shiftdim(meas_times,-1),[size(seg_data,2),1,1]);
+meas_times = meas_times + repmat(((0:size(meas_times,1)-1).').*accum_count.*size(seg_data,1)./sample_rate,[1,size(meas_times,2),size(meas_times,3)]);
