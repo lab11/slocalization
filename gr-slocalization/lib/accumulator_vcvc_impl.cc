@@ -47,7 +47,7 @@ namespace gr {
       d_accum_max = num_accums;
       d_k.reserve(vector_len);
       for(int ii=0; ii < vector_len; ii++){
-        d_k[ii] = gr_complex(0, 0);
+        d_k[ii] = gr_complexd(0, 0);
       }
       set_relative_rate(1./num_accums);
     }
@@ -92,9 +92,9 @@ namespace gr {
           nitems_produced++;
           
           // Reset the accumulator for next round...
-          for(int ii=0; ii < nitems_per_block; ii++){
-            *out++ = d_k[ii];
-            d_k[ii] = gr_complex(0, 0);
+          for(int jj=0; jj < nitems_per_block; jj++){
+            *out++ = d_k[jj];
+            d_k[jj] = gr_complexd(0, 0);
           }
         }
       }
