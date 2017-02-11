@@ -176,9 +176,12 @@ int Reset_Handler(void)
 
     reset_count = 0;
 
-    Ambiq_0805_Command(0x13, 0x8F);
+    //Ambiq_0805_Command(0x13, 0x8F); // 1 Hz
+    //Ambiq_0805_Command(0x13, 0x88); // 128 Hz
+    Ambiq_0805_Command(0x13, 0x87); // 256 Hz
     Ambiq_0805_Command(0x12, 0xA4);
-    Ambiq_0805_Command(0x11, 0x03);
+    //Ambiq_0805_Command(0x11, 0x03);
+    Ambiq_0805_Command(0x11, 0x01);
     Ambiq_0805_Command(0x18, 0x3C);
   }
 
@@ -189,7 +192,7 @@ int Reset_Handler(void)
   reset_count %= (pn_sequence_length << 1);
   pn_sequence_byte = reset_count >> 4;
   pn_sequence_bit = (pn_sequence[pn_sequence_byte] & (0x80 >> ((reset_count >> 1) & 7))) > 0;
-  pn_sequence_bit = (reset_count & 1) ^ pn_sequence_bit;
+  pn_sequence_bit = (reset_count & 1);// ^ pn_sequence_bit;
   if(pn_sequence_bit){
     HAL_GPIO_WritePin(DFF_PORT, DFF_DATA0_PIN, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(DFF_PORT, DFF_DATA1_PIN, GPIO_PIN_SET);
@@ -215,7 +218,7 @@ int Reset_Handler(void)
   __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
     
   /* Enable WakeUp Pin PWR_WAKEUP_PIN1 connected to PA.02 (Arduino A7) */
-  HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+  //HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
 
   /* Enter the Standby mode */
   HAL_PWR_EnterSTANDBYMode();

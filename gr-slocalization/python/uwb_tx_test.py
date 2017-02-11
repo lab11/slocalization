@@ -56,7 +56,6 @@ class status_thread(_threading.Thread):
         next_call = time.time()
         while not self.done:
             self.tb.increment_channel()
-            self.tb.switch_to_overair()
             
             try:
                 next_call = next_call + STEP_TIME
@@ -104,54 +103,54 @@ class build_block(gr.top_block):
 
         self.connect (self.vec_tx_src, self.tx_src, self.u_tx)
 
-        ##############################
-        # RECEIVE CHAIN
-        ##############################
-        print "\nRECEIVE CHAIN"
+        ###############################
+        ## RECEIVE CHAIN
+        ###############################
+        #print "\nRECEIVE CHAIN"
 
-        #USRP logs IQ data to file
-        #This PMT dictionary stuff is stupid, however it's required otherwise the header will become corrupted...
-        key = pmt.intern("rx_freq")
-        val = pmt.from_double(0)
-        extras = pmt.make_dict()
-        extras = pmt.dict_add(extras, key, val)
-        extras = pmt.serialize_str(extras)
-        self.rx_dst = blocks.file_meta_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat", SAMPLE_RATE, extra_dict=extras)#, detached_header=True)
-        #self.rx_dst = blocks.file_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat")
+        ##USRP logs IQ data to file
+        ##This PMT dictionary stuff is stupid, however it's required otherwise the header will become corrupted...
+        #key = pmt.intern("rx_freq")
+        #val = pmt.from_double(0)
+        #extras = pmt.make_dict()
+        #extras = pmt.dict_add(extras, key, val)
+        #extras = pmt.serialize_str(extras)
+        #self.rx_dst = blocks.file_meta_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat", SAMPLE_RATE, extra_dict=extras)#, detached_header=True)
+        ##self.rx_dst = blocks.file_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat")
 
-        # Accumulate repeating sequences using custom block
-        self.rx_accum = slocalization.accumulator_vcvc(SIGNAL_LEN, int(1e3))
+        ## Accumulate repeating sequences using custom block
+        #self.rx_accum = slocalization.accumulator_vcvc(SIGNAL_LEN, int(1e3))
 
-        #Find USRP with device characteristics specified by args1
-        d2 = uhd.find_devices(uhd.device_addr(args2))
-        uhd_type2 = d2[0].get('type')
-        print "\nFound '%s' at args '%s'" % \
-            (uhd_type2, args2)
+        ##Find USRP with device characteristics specified by args1
+        #d2 = uhd.find_devices(uhd.device_addr(args2))
+        #uhd_type2 = d2[0].get('type')
+        #print "\nFound '%s' at args '%s'" % \
+        #    (uhd_type2, args2)
 
-        self.u_rx = uhd.usrp_source(device_addr=args2,
-                                    io_type=uhd.io_type.COMPLEX_FLOAT32,
-                                    num_channels=1)
-        self.u_rx.set_samp_rate(SAMPLE_RATE)
-        self.u_rx.set_clock_source("external")
-        self.u_rx.set_center_freq(self.tr)
+        #self.u_rx = uhd.usrp_source(device_addr=args2,
+        #                            io_type=uhd.io_type.COMPLEX_FLOAT32,
+        #                            num_channels=1)
+        #self.u_rx.set_samp_rate(SAMPLE_RATE)
+        #self.u_rx.set_clock_source("external")
+        #self.u_rx.set_center_freq(self.tr)
 
-        # Get dboard gain range and select maximum
-        rx_gain_range = self.u_rx.get_gain_range()
-        rx_gain = rx_gain_range.stop()
-        self.u_rx.set_gain(rx_gain, 0)
+        ## Get dboard gain range and select maximum
+        #rx_gain_range = self.u_rx.get_gain_range()
+        #rx_gain = rx_gain_range.stop()
+        #self.u_rx.set_gain(rx_gain, 0)
 
-        # Convert stream to vector
-        self.s_to_v = blocks.stream_to_vector(gr.sizeof_gr_complex, SIGNAL_LEN)
+        ## Convert stream to vector
+        #self.s_to_v = blocks.stream_to_vector(gr.sizeof_gr_complex, SIGNAL_LEN)
 
-        self.connect (self.u_rx, self.s_to_v, self.rx_accum, self.rx_dst)
-        #self.connect (self.u_rx, self.s_to_v, self.rx_dst)
+        #self.connect (self.u_rx, self.s_to_v, self.rx_accum, self.rx_dst)
+        ##self.connect (self.u_rx, self.s_to_v, self.rx_dst)
 
-        # DEBUG: Monitor incoming tags...
-        self.tag_debug = blocks.tag_debug(gr.sizeof_gr_complex*SIGNAL_LEN, "tag_debugger", "")
-        self.connect (self.rx_accum, self.tag_debug)
+        ## DEBUG: Monitor incoming tags...
+        #self.tag_debug = blocks.tag_debug(gr.sizeof_gr_complex*SIGNAL_LEN, "tag_debugger", "")
+        #self.connect (self.rx_accum, self.tag_debug)
 
         # Synchronize both USRPs' timebases
-        self.u_rx.set_time_now(uhd.time_spec(0.0))
+        #self.u_rx.set_time_now(uhd.time_spec(0.0))
         self.u_tx.set_time_now(uhd.time_spec(0.0))
 
     def increment_channel(self):
@@ -162,13 +161,7 @@ class build_block(gr.top_block):
         self.tr = uhd.tune_request(self.center_freq)
         self.tr.args = uhd.device_addr_t("mode_n=integer")
         self.u_tx.set_center_freq(self.tr)
-        self.u_rx.set_center_freq(self.tr)
-
-    def switch_to_direct_feed(self):
-        self.u_rx.set_antenna("RX2")
-
-    def switch_to_overair(self):
-        self.u_rx.set_antenna("TX/RX")
+        #self.u_rx.set_center_freq(self.tr)
 
 def main ():
     parser = OptionParser (option_class=eng_option)

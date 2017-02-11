@@ -29,7 +29,7 @@ namespace gr {
     class accumulator_vcvc_impl : public accumulator_vcvc
     {
      private:
-      std::vector<gr_complex> d_k;
+      std::vector<gr_complexd> d_k;
       int d_accum_count, d_accum_max;
 
      public:
