@@ -1,13 +1,14 @@
 function deconvolved = bandstitching(in_header_filename, in_data_filename)
 
 VALID_MEAS_START_IDX = 100;
+CAL_VALID_MEAS_START_IDX = 100;
 SAMPLE_RATE = 25e6;
 ACCUM_COUNT = 1e3;
-TAG_FREQ = 128;
+TAG_FREQ = 256;
 TAG_FREQ_PPM_ACCURACY = 250e-5;
 
-[cal_data, cal_data_times] = readUSRPData('header_direct.csv','data_direct.dat', SAMPLE_RATE, ACCUM_COUNT);
-cal_data = cal_data(:,VALID_MEAS_START_IDX:end,:,:);
+[cal_data, cal_data_times] = readUSRPData('header_direct2.csv','data_direct2.dat', SAMPLE_RATE, ACCUM_COUNT);
+cal_data = cal_data(:,CAL_VALID_MEAS_START_IDX:end,:,:);
 
 %For now, let's just use the last bandstitching sweep...
 cal_data = cal_data(:,:,:,end);
@@ -17,6 +18,12 @@ cal_data_fft = fft(cal_data,[],1);
 [overair_data, overair_data_times] = readUSRPData(in_header_filename,in_data_filename, SAMPLE_RATE, ACCUM_COUNT);
 overair_data = overair_data(:,VALID_MEAS_START_IDX:end,:,:);
 overair_data_times = overair_data_times(VALID_MEAS_START_IDX:end,:,:);
+
+%%Find a good multiple of the tag period to provide an ending cutoff
+%tag_freq_num_idxs = SAMPLE_RATE/ACCUM_COUNT/size(overair_data,1)/TAG_FREQ;
+%[~,best_ending_idx] = min(rem(size(overair_data,2)-100:size(overair_data,2)-1,tag_freq_num_idxs));
+%overair_data = overair_data(:,1:end-100+best_ending_idx-1,:,:);
+%overair_data_times = overair_data_times(1:end-100+best_ending_idx-1,:,:);
 
 %In order to locate the backscatter tag, we need to search across <tag_freq,quadrature_phase>
 tag_freq_search_space = -TAG_FREQ_PPM_ACCURACY:1e-4:TAG_FREQ_PPM_ACCURACY;
@@ -44,12 +51,14 @@ tag_freq_offset = tag_freq_search_space(best_freq_offs_idxs);
 
 tag_freq = 1./TAG_FREQ*(1+tag_freq_offset);
 for quadrature_phase = 1:2
-    overair_data_times_mod = rem(overair_data_times + quadrature_phase/TAG_FREQ/4, repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]));
-    %mixing_signal = sign(cos(2.*pi./tag_freq.*overair_data_times(:,1,1) + quadrature_phase*pi/2));
-    mixing_signal = exp(1i.*2.*pi./tag_freq.*overair_data_times(:,1,1) + quadrature_phase*pi/2);
-    mixing_signal = mixing_signal.*repmat(blackman(size(mixing_signal,1)),[1,size(mixing_signal,2)]);
-    overair_data_temp = overair_data.*repmat(reshape(mixing_signal,[1,size(overair_data,2),1,size(overair_data,4)]),[size(overair_data,1),1,size(overair_data,3),1]);
+    %mixing_signal = sign(cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times + quadrature_phase*pi/2));
+    mixing_signal = exp(1i.*2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times + quadrature_phase*pi/2);
+    %mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times + quadrature_phase*pi/2);
+    %mixing_signal = ones(size(overair_data_times));
+    mixing_signal = mixing_signal.*repmat(blackman(size(mixing_signal,1)),[1,size(mixing_signal,2),size(mixing_signal,3)]);
+    overair_data_temp = overair_data.*repmat(shiftdim(mixing_signal,-1),[size(overair_data,1),1,1,1]);
     %overair_data_temp = overair_data;
+    keyboard;
 
     %Average across time...
     overair_data_temp = squeeze(sum(overair_data_temp,2));
