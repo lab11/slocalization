@@ -77,8 +77,26 @@ class build_block(gr.top_block):
         #self.tx_src = blocks.file_source(gr.sizeof_gr_complex, "iq_in.dat", True)
 
         #USRP transmits a repeating vector generated here...
-        tx_list = [0]*SIGNAL_LEN
-        tx_list[0] = 0.5
+        tx_list = [0.1772 + 0.1164j,
+                  -0.2153 + 0.1562j,
+                  -0.1347 + 0.1331j,
+                  -0.1941 + 0.1138j,
+                   0.1267 - 0.1703j,
+                   0.1659 - 0.1888j,
+                  -0.0572 - 0.2158j,
+                  -0.2210 - 0.1160j,
+                   0.2308 - 0.0761j,
+                  -0.1903 + 0.0438j,
+                   0.0530 - 0.0185j,
+                  -0.0812 - 0.2006j,
+                  -0.0694 + 0.2082j,
+                  -0.0046 + 0.2304j,
+                   0.0554 - 0.2583j,
+                   0.0786 + 0.2536j,
+                  -0.0492 + 0.0910j,
+                   0.2158 + 0.1284j,
+                  -0.0297 - 0.2075j,
+                   0.1433 - 0.0230j]
         self.vec_tx_src = blocks.vector_source_c(tuple(tx_list), True, SIGNAL_LEN, [])
         self.tx_src = blocks.vector_to_stream(gr.sizeof_gr_complex, SIGNAL_LEN)
 
