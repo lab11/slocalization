@@ -34,7 +34,12 @@ seg_data = zeros(ncplx_per_vec,min_observations,num_freq_bins,num_reps);
 cur_bin_idx = 1;
 for ii=1:num_reps
     for jj=1:num_freq_bins
-        seg_data(:,:,jj,ii) = reshape(data(cum_cplx_idxs(cur_bin_idx)-ncplx_per_vec*min_observations+1:cum_cplx_idxs(cur_bin_idx)),[ncplx_per_vec,min_observations]);
+        %seg_data(:,:,jj,ii) = reshape(data(cum_cplx_idxs(cur_bin_idx)-ncplx_per_vec*min_observations+1:cum_cplx_idxs(cur_bin_idx)),[ncplx_per_vec,min_observations]);
+        if cur_bin_idx == 1
+            seg_data(:,:,jj,ii) = reshape(data(1:ncplx_per_vec*min_observations),[ncplx_per_vec,min_observations]);
+        else
+            seg_data(:,:,jj,ii) = reshape(data(cum_cplx_idxs(cur_bin_idx-1)+1:cum_cplx_idxs(cur_bin_idx-1)+ncplx_per_vec*min_observations),[ncplx_per_vec,min_observations]);
+        end
         cur_bin_idx = cur_bin_idx + 1;
     end
 end
