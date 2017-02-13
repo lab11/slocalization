@@ -31,25 +31,30 @@ data = data(1:2:end) + 1i*data(2:2:end);
 
 %Reorganize data into (ncplx_per_vec,min_observations,num_freq_bins,num_reps)
 seg_data = zeros(ncplx_per_vec,min_observations,num_freq_bins,num_reps);
+meas_times = zeros(min_observations,num_freq_bins,num_reps);
 cur_bin_idx = 1;
 for ii=1:num_reps
     for jj=1:num_freq_bins
         %seg_data(:,:,jj,ii) = reshape(data(cum_cplx_idxs(cur_bin_idx)-ncplx_per_vec*min_observations+1:cum_cplx_idxs(cur_bin_idx)),[ncplx_per_vec,min_observations]);
         if cur_bin_idx == 1
-            seg_data(:,:,jj,ii) = reshape(data(1:ncplx_per_vec*min_observations),[ncplx_per_vec,min_observations]);
+            data_idxs = 1:ncplx_per_vec*min_observations;
+            seg_data(:,:,jj,ii) = reshape(data(data_idxs),[ncplx_per_vec,min_observations]);
         else
-            seg_data(:,:,jj,ii) = reshape(data(cum_cplx_idxs(cur_bin_idx-1)+1:cum_cplx_idxs(cur_bin_idx-1)+ncplx_per_vec*min_observations),[ncplx_per_vec,min_observations]);
+            data_idxs = cum_cplx_idxs(cur_bin_idx-1)+1:cum_cplx_idxs(cur_bin_idx-1)+ncplx_per_vec*min_observations;
+            seg_data(:,:,jj,ii) = reshape(data(data_idxs),[ncplx_per_vec,min_observations]);
         end
+        meas_times(:,jj,ii) = double(data_idxs(1:ncplx_per_vec:end)).*accum_count./sample_rate;
         cur_bin_idx = cur_bin_idx + 1;
     end
 end
 
 %Remove last observation since it may be corrupted by a frequency change
 seg_data = seg_data(:,1:end-1,:,:);
+meas_times = meas_times(1:end-1,:,:);
 
 meas = seg_data;
-meas_times = reshape(rx_times(1:num_freq_bins*num_reps), [num_freq_bins,num_reps]);
 
-%Get interpolated time based on sample rate and accumulation count
-meas_times = repmat(shiftdim(meas_times,-1),[size(seg_data,2),1,1]);
-meas_times = meas_times + repmat(((0:size(meas_times,1)-1).').*accum_count.*size(seg_data,1)./sample_rate,[1,size(meas_times,2),size(meas_times,3)]);
+%meas_times = reshape(rx_times(1:num_freq_bins*num_reps), [num_freq_bins,num_reps]);
+%%Get interpolated time based on sample rate and accumulation count
+%meas_times = repmat(shiftdim(meas_times,-1),[size(seg_data,2),1,1]);
+%meas_times = meas_times + repmat(((0:size(meas_times,1)-1).').*accum_count.*size(seg_data,1)./sample_rate,[1,size(meas_times,2),size(meas_times,3)]);
