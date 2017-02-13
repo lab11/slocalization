@@ -76,8 +76,26 @@ class build_block(gr.top_block):
         #self.tx_src = blocks.file_source(gr.sizeof_gr_complex, "iq_in.dat", True)
 
         #USRP transmits a repeating vector generated here...
-        tx_list = [0]*SIGNAL_LEN
-        tx_list[0] = 0.5
+        tx_list = [0.2363 + 0.0741j,
+                   0.0733 - 0.2865j,
+                  -0.1035 - 0.2663j,
+                  -0.0853 + 0.1909j,
+                  -0.0736 + 0.2699j,
+                   0.0773 + 0.1481j,
+                  -0.0336 + 0.2079j,
+                  -0.0644 - 0.2244j,
+                   0.0396 + 0.2822j,
+                  -0.0595 - 0.2416j,
+                   0.1379 + 0.2658j,
+                  -0.0449 - 0.2539j,
+                   0.0593 + 0.2946j,
+                   0.0221 - 0.0113j,
+                  -0.1303 + 0.2762j,
+                  -0.1351 - 0.2598j,
+                  -0.0275 - 0.2617j,
+                   0.2157 + 0.1021j,
+                   0.0332 - 0.0383j,
+                  -0.1369 - 0.2680j]
         self.vec_tx_src = blocks.vector_source_c(tuple(tx_list), True, SIGNAL_LEN, [])
         self.tx_src = blocks.vector_to_stream(gr.sizeof_gr_complex, SIGNAL_LEN)
 
@@ -95,11 +113,12 @@ class build_block(gr.top_block):
         self.tr = uhd.tune_request(self.center_freq)
         self.tr.args = uhd.device_addr_t("mode_n=integer")
         self.u_tx.set_center_freq(self.tr)
+        self.u_tx.set_bandwidth(SAMPLE_RATE*1.5);
 
         # Get dboard gain range and select maximum
         tx_gain_range = self.u_tx.get_gain_range()
         tx_gain = tx_gain_range.stop()
-        self.u_tx.set_gain(tx_gain-9)
+        self.u_tx.set_gain(18.9)
 
         self.connect (self.vec_tx_src, self.tx_src, self.u_tx)
 

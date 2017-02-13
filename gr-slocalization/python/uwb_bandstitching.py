@@ -39,6 +39,8 @@ import gnuradio.gr.gr_threading as _threading
 SAMPLE_RATE = 25e6
 START_FREQ = 3.15e9
 END_FREQ = 4.35e9
+START_TX_GAIN = 15.6
+END_TX_GAIN = 18.9
 STEP_FREQ = SAMPLE_RATE
 DIRECT_FEED_TIME = 0.01
 STEP_TIME = 2.0
@@ -77,26 +79,26 @@ class build_block(gr.top_block):
         #self.tx_src = blocks.file_source(gr.sizeof_gr_complex, "iq_in.dat", True)
 
         #USRP transmits a repeating vector generated here...
-        tx_list = [0.1772 + 0.1164j,
-                  -0.2153 + 0.1562j,
-                  -0.1347 + 0.1331j,
-                  -0.1941 + 0.1138j,
-                   0.1267 - 0.1703j,
-                   0.1659 - 0.1888j,
-                  -0.0572 - 0.2158j,
-                  -0.2210 - 0.1160j,
-                   0.2308 - 0.0761j,
-                  -0.1903 + 0.0438j,
-                   0.0530 - 0.0185j,
-                  -0.0812 - 0.2006j,
-                  -0.0694 + 0.2082j,
-                  -0.0046 + 0.2304j,
-                   0.0554 - 0.2583j,
-                   0.0786 + 0.2536j,
-                  -0.0492 + 0.0910j,
-                   0.2158 + 0.1284j,
-                  -0.0297 - 0.2075j,
-                   0.1433 - 0.0230j]
+        tx_list = [0.2363 + 0.0741j,
+                   0.0733 - 0.2865j,
+                  -0.1035 - 0.2663j,
+                  -0.0853 + 0.1909j,
+                  -0.0736 + 0.2699j,
+                   0.0773 + 0.1481j,
+                  -0.0336 + 0.2079j,
+                  -0.0644 - 0.2244j,
+                   0.0396 + 0.2822j,
+                  -0.0595 - 0.2416j,
+                   0.1379 + 0.2658j,
+                  -0.0449 - 0.2539j,
+                   0.0593 + 0.2946j,
+                   0.0221 - 0.0113j,
+                  -0.1303 + 0.2762j,
+                  -0.1351 - 0.2598j,
+                  -0.0275 - 0.2617j,
+                   0.2157 + 0.1021j,
+                   0.0332 - 0.0383j,
+                  -0.1369 - 0.2680j]
         self.vec_tx_src = blocks.vector_source_c(tuple(tx_list), True, SIGNAL_LEN, [])
         self.tx_src = blocks.vector_to_stream(gr.sizeof_gr_complex, SIGNAL_LEN)
 
@@ -114,6 +116,7 @@ class build_block(gr.top_block):
         self.tr = uhd.tune_request(self.center_freq)
         self.tr.args = uhd.device_addr_t("mode_n=integer")
         self.u_tx.set_center_freq(self.tr)
+        self.u_tx.set_bandwidth(SAMPLE_RATE*1.5);
 
         # Get dboard gain range and select maximum
         tx_gain_range = self.u_tx.get_gain_range()
@@ -150,6 +153,7 @@ class build_block(gr.top_block):
                                     io_type=uhd.io_type.COMPLEX_FLOAT32,
                                     num_channels=1)
         self.u_rx.set_samp_rate(SAMPLE_RATE)
+        self.u_rx.set_bandwidth(SAMPLE_RATE*1.5);
         self.u_rx.set_clock_source("external")
         self.u_rx.set_center_freq(self.tr)
 
@@ -180,6 +184,10 @@ class build_block(gr.top_block):
         self.tr = uhd.tune_request(self.center_freq)
         self.tr.args = uhd.device_addr_t("mode_n=integer")
         self.u_tx.set_center_freq(self.tr)
+        progress_frac = (self.center_freq-START_FREQ)/(END_FREQ-START_FREQ)
+        tx_gain = (1-progress_frac)*START_TX_GAIN + progress_frac*END_TX_GAIN
+        print("setting tx gain to {}...".format(tx_gain))
+        self.u_tx.set_gain(tx_gain) #TX (and RX) gain is inconsistent across freuqency, so we compensate...
         self.u_rx.set_center_freq(self.tr)
 
     def switch_to_direct_feed(self):
