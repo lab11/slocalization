@@ -40,7 +40,7 @@ SAMPLE_RATE = 25e6
 START_FREQ = 3.15e9
 END_FREQ = 4.35e9
 START_TX_GAIN = 15.6
-END_TX_GAIN = 18.9
+END_TX_GAIN = 18.9+6
 STEP_FREQ = SAMPLE_RATE
 DIRECT_FEED_TIME = 0.01
 STEP_TIME = 2.0
@@ -137,43 +137,51 @@ class build_block(gr.top_block):
         extras = pmt.make_dict()
         extras = pmt.dict_add(extras, key, val)
         extras = pmt.serialize_str(extras)
-        self.rx_dst = blocks.file_meta_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat", SAMPLE_RATE, extra_dict=extras)#, detached_header=True)
-        #self.rx_dst = blocks.file_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat")
 
-        # Accumulate repeating sequences using custom block
-        self.rx_accum = slocalization.accumulator_vcvc(SIGNAL_LEN, int(1e3))
+        self.tag_debug = None
+        self.u_rxs = []
+        
+        for usrp_addr in args2.split(","):
+            kv = usrp_addr.split("=")
+            rx_dst = blocks.file_meta_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out_{}.dat".format(kv[1]), SAMPLE_RATE, extra_dict=extras)#, detached_header=True)
+            #rx_dst = blocks.file_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat")
 
-        #Find USRP with device characteristics specified by args1
-        d2 = uhd.find_devices(uhd.device_addr(args2))
-        uhd_type2 = d2[0].get('type')
-        print "\nFound '%s' at args '%s'" % \
-            (uhd_type2, args2)
+            # Accumulate repeating sequences using custom block
+            rx_accum = slocalization.accumulator_vcvc(SIGNAL_LEN, int(1e3))
 
-        self.u_rx = uhd.usrp_source(device_addr=args2,
-                                    io_type=uhd.io_type.COMPLEX_FLOAT32,
-                                    num_channels=1)
-        self.u_rx.set_samp_rate(SAMPLE_RATE)
-        self.u_rx.set_bandwidth(SAMPLE_RATE*1.5);
-        self.u_rx.set_clock_source("external")
-        self.u_rx.set_center_freq(self.tr)
+            #Find USRP with device characteristics specified by args1
+            d2 = uhd.find_devices(uhd.device_addr(usrp_addr))
+            uhd_type2 = d2[0].get('type')
+            print "\nFound '%s' at args '%s'" % \
+                (uhd_type2, usrp_addr)
 
-        # Get dboard gain range and select maximum
-        rx_gain_range = self.u_rx.get_gain_range()
-        rx_gain = rx_gain_range.stop()
-        self.u_rx.set_gain(rx_gain, 0)
+            u_rx = uhd.usrp_source(device_addr=usrp_addr,
+                                   io_type=uhd.io_type.COMPLEX_FLOAT32,
+                                   num_channels=1)
+            u_rx.set_samp_rate(SAMPLE_RATE)
+            u_rx.set_bandwidth(SAMPLE_RATE*1.5);
+            u_rx.set_clock_source("external")
+            u_rx.set_center_freq(self.tr)
+            self.u_rxs.append(u_rx)
 
-        # Convert stream to vector
-        self.s_to_v = blocks.stream_to_vector(gr.sizeof_gr_complex, SIGNAL_LEN)
+            # Get dboard gain range and select maximum
+            rx_gain_range = u_rx.get_gain_range()
+            rx_gain = rx_gain_range.stop()
+            u_rx.set_gain(rx_gain, 0)
 
-        self.connect (self.u_rx, self.s_to_v, self.rx_accum, self.rx_dst)
-        #self.connect (self.u_rx, self.s_to_v, self.rx_dst)
+            # Convert stream to vector
+            s_to_v = blocks.stream_to_vector(gr.sizeof_gr_complex, SIGNAL_LEN)
 
-        # DEBUG: Monitor incoming tags...
-        self.tag_debug = blocks.tag_debug(gr.sizeof_gr_complex*SIGNAL_LEN, "tag_debugger", "")
-        self.connect (self.rx_accum, self.tag_debug)
+            self.connect (u_rx, s_to_v, rx_accum, rx_dst)
+            #self.connect (u_rx, s_to_v, rx_dst)
+
+            if not self.tag_debug:
+                # DEBUG: Monitor incoming tags...
+                self.tag_debug = blocks.tag_debug(gr.sizeof_gr_complex*SIGNAL_LEN, "tag_debugger", "")
+                self.connect (rx_accum, self.tag_debug)
 
         # Synchronize both USRPs' timebases
-        self.u_rx.set_time_now(uhd.time_spec(0.0))
+        u_rx.set_time_now(uhd.time_spec(0.0))
         self.u_tx.set_time_now(uhd.time_spec(0.0))
 
     def increment_channel(self):
@@ -188,19 +196,22 @@ class build_block(gr.top_block):
         tx_gain = (1-progress_frac)*START_TX_GAIN + progress_frac*END_TX_GAIN
         print("setting tx gain to {}...".format(tx_gain))
         self.u_tx.set_gain(tx_gain) #TX (and RX) gain is inconsistent across freuqency, so we compensate...
-        self.u_rx.set_center_freq(self.tr)
+        for u_rx in self.u_rxs:
+            u_rx.set_center_freq(self.tr)
 
     def switch_to_direct_feed(self):
-        self.u_rx.set_antenna("RX2")
+        for u_rx in self.u_rxs:
+            u_rx.set_antenna("RX2")
 
     def switch_to_overair(self):
-        self.u_rx.set_antenna("TX/RX")
+        for u_rx in self.u_rxs:
+            u_rx.set_antenna("TX/RX")
 
 def main ():
     parser = OptionParser (option_class=eng_option)
     parser.add_option("-a", "--args1", type="string", default="addr=192.168.20.14",
                       help="TX UHD device (#1) address args [default=%default]")
-    parser.add_option("-A", "--args2", type="string", default="addr=192.168.10.13",
+    parser.add_option("-A", "--args2", type="string", default="addr=192.168.20.14,addr=192.168.10.13",
                       help="RX UHD device (#2) address args [default=%default]")
     (options, args) = parser.parse_args ()
 
