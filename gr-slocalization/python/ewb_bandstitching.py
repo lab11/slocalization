@@ -36,9 +36,9 @@ import datetime, time
 #Ref: gr-digital/examples/narrowband/digital_bert_rx.py
 import gnuradio.gr.gr_threading as _threading
 
-SAMPLE_RATE = 25e6
+SAMPLE_RATE = 50e6
 START_FREQ = 3.15e9
-END_FREQ = 4.35e9
+END_FREQ = 6.00e9
 START_TX_GAIN = 15.6
 END_TX_GAIN = 18.9+6
 STEP_FREQ = SAMPLE_RATE
@@ -209,9 +209,9 @@ class build_block(gr.top_block):
 
 def main ():
     parser = OptionParser (option_class=eng_option)
-    parser.add_option("-a", "--args1", type="string", default="addr=192.168.30.15",
+    parser.add_option("-a", "--args1", type="string", default="addr=192.168.130.2",
                       help="TX UHD device (#1) address args [default=%default]")
-    parser.add_option("-A", "--args2", type="string", default="addr=192.168.20.14,addr=192.168.10.13",
+    parser.add_option("-A", "--args2", type="string", default="addr=192.168.130.2",
                       help="RX UHD device (#2) address args [default=%default]")
     (options, args) = parser.parse_args ()
 
