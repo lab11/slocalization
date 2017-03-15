@@ -38,7 +38,7 @@ import gnuradio.gr.gr_threading as _threading
 
 SAMPLE_RATE = 25e6
 START_FREQ = 3.15e9
-END_FREQ = 4.35e9
+END_FREQ = 4.375e9
 START_TX_GAIN = 15.6
 END_TX_GAIN = 18.9+6
 STEP_FREQ = SAMPLE_RATE
@@ -56,9 +56,15 @@ class status_thread(_threading.Thread):
 
     def run(self):
         next_call = time.time()
+        num_steps = 0
         while not self.done:
             self.tb.increment_channel()
             self.tb.switch_to_overair()
+            num_steps += 1
+            if(num_steps > (END_FREQ-START_FREQ)/STEP_FREQ + 3):
+                self.tb.stop()
+                self.done = True
+                return
             
             try:
                 next_call = next_call + STEP_TIME
@@ -112,7 +118,7 @@ class build_block(gr.top_block):
         self.u_tx = uhd.usrp_sink(device_addr=args1, stream_args=stream_args)
         self.u_tx.set_samp_rate(SAMPLE_RATE)
         self.u_tx.set_clock_source("external")
-        self.center_freq = END_FREQ
+        self.center_freq = END_FREQ-STEP_FREQ
         self.tr = uhd.tune_request(self.center_freq)
         self.tr.args = uhd.device_addr_t("mode_n=integer")
         self.u_tx.set_center_freq(self.tr)
@@ -180,8 +186,10 @@ class build_block(gr.top_block):
                 self.tag_debug = blocks.tag_debug(gr.sizeof_gr_complex*SIGNAL_LEN, "tag_debugger", "")
                 self.connect (rx_accum, self.tag_debug)
 
+            # Synchronize both USRPs' timebases
+            u_rx.set_time_now(uhd.time_spec(0.0))
+
         # Synchronize both USRPs' timebases
-        u_rx.set_time_now(uhd.time_spec(0.0))
         self.u_tx.set_time_now(uhd.time_spec(0.0))
 
     def increment_channel(self):
@@ -205,13 +213,13 @@ class build_block(gr.top_block):
 
     def switch_to_overair(self):
         for u_rx in self.u_rxs:
-            u_rx.set_antenna("TX/RX")
+            u_rx.set_antenna("RX2")#TX/RX")
 
 def main ():
     parser = OptionParser (option_class=eng_option)
-    parser.add_option("-a", "--args1", type="string", default="addr=192.168.30.15",
+    parser.add_option("-a", "--args1", type="string", default="addr=192.168.10.13",
                       help="TX UHD device (#1) address args [default=%default]")
-    parser.add_option("-A", "--args2", type="string", default="addr=192.168.20.14,addr=192.168.10.13",
+    parser.add_option("-A", "--args2", type="string", default="addr=192.168.20.14,addr=192.168.30.15",
                       help="RX UHD device (#2) address args [default=%default]")
     (options, args) = parser.parse_args ()
 
