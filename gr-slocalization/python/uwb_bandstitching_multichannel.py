@@ -38,10 +38,10 @@ import gnuradio.gr.gr_threading as _threading
 
 SAMPLE_RATE = 25e6
 START_FREQ = 3.15e9
-END_FREQ = 4.375e9
+END_FREQ = 4.35e9
 START_TX_GAIN = 15.6
 END_TX_GAIN = 18.9+6
-STEP_FREQ = 100e6
+STEP_FREQ = SAMPLE_RATE#100e6
 DIRECT_FEED_TIME = 0.01
 STEP_TIME = 2.0
 SIGNAL_LEN = 20
@@ -128,7 +128,7 @@ class build_block(gr.top_block):
             u_tx = uhd.usrp_sink(device_addr=usrp_addr, stream_args=stream_args)
             u_tx.set_samp_rate(SAMPLE_RATE)
             u_tx.set_clock_source("external")
-            center_freq = END_FREQ-STEP_FREQ*usrp_idx
+            center_freq = END_FREQ-100e6*usrp_idx
             self.tr = uhd.tune_request(center_freq)
             self.tr.args = uhd.device_addr_t("mode_n=integer")
             u_tx.set_center_freq(self.tr)
@@ -191,7 +191,7 @@ class build_block(gr.top_block):
             progress_frac = (self.center_freqs[ii]-START_FREQ)/(END_FREQ-START_FREQ)
             tx_gain = (1-progress_frac)*START_TX_GAIN + progress_frac*END_TX_GAIN
             self.u_txs[ii].set_gain(tx_gain) #TX (and RX) gain is inconsistent across freuqency, so we compensate...
-            u_rxs[ii-1].set_center_freq(self.tr)
+            self.u_rxs[ii-2].set_center_freq(self.tr)
 
     def switch_to_direct_feed(self):
         for u_rx in self.u_rxs:

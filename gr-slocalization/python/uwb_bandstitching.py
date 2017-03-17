@@ -38,12 +38,12 @@ import gnuradio.gr.gr_threading as _threading
 
 SAMPLE_RATE = 25e6
 START_FREQ = 3.15e9
-END_FREQ = 4.375e9
+END_FREQ = 4.35e9
 START_TX_GAIN = 15.6
 END_TX_GAIN = 18.9+6
 STEP_FREQ = SAMPLE_RATE
 DIRECT_FEED_TIME = 0.01
-STEP_TIME = 2.0
+STEP_TIME = 2.00
 SIGNAL_LEN = 20
 
 class status_thread(_threading.Thread):
