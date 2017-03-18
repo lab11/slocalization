@@ -1,0 +1,12 @@
+deconvolved = bandstitching('256hz_exp5/header_192.168.10.13.csv','256hz_exp5/data_192.168.10.13.dat','cal_data/cal_header_30_to_10.csv','cal_data/cal_data_30_to_10.dat');
+save decon_30_to_10 deconvolved
+deconvolved = bandstitching('256hz_exp5/header_192.168.20.14.csv','256hz_exp5/data_192.168.20.14.dat','cal_data/cal_header_10_to_20.csv','cal_data/cal_data_10_to_20.dat');
+save decon_10_to_20 deconvolved
+deconvolved = bandstitching('256hz_exp5/header_192.168.30.15.csv','256hz_exp5/data_192.168.30.15.dat','cal_data/cal_header_20_to_30.csv','cal_data/cal_data_20_to_30.dat');
+save decon_20_to_30 deconvolved
+deconvolved = bandstitching('256hz_exp6/header_192.168.10.13.csv','256hz_exp6/data_192.168.10.13.dat','cal_data/cal_header_20_to_10.csv','cal_data/cal_data_20_to_10.dat');
+save decon_20_to_10 deconvolved
+deconvolved = bandstitching('256hz_exp6/header_192.168.20.14.csv','256hz_exp6/data_192.168.20.14.dat','cal_data/cal_header_30_to_20.csv','cal_data/cal_data_30_to_20.dat');
+save decon_30_to_20 deconvolved
+deconvolved = bandstitching('256hz_exp6/header_192.168.30.15.csv','256hz_exp6/data_192.168.30.15.dat','cal_data/cal_header_10_to_30.csv','cal_data/cal_data_10_to_30.dat');
+save decon_10_to_30 deconvolved
