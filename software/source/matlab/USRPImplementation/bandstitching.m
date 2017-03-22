@@ -1,4 +1,4 @@
-function deconvolved = bandstitching(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
+function [deconvolved, deconvolved_direct] = bandstitching(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
 
 VALID_MEAS_START_IDX = 100;
 CAL_VALID_MEAS_START_IDX = 100;
@@ -101,6 +101,7 @@ end
 %phase_correction = repmat([repmat([0;3*pi/2;2*pi/2;pi/2],[12,1]);0],[1,size(phase_correction,2)]);
 %phase_correction = repmat([repmat(phase_correction(11:20,1),[4,1]);phase_correction(11:19,1)],[1,size(phase_correction,2)]);
 [~,best_offset] = min(sum(abs(cand_deconvolved(:,1,:)),1));
+deconvolved_direct = cand_deconvolved(:,:,best_offset);
 overair_data = overair_data.*repmat(shiftdim(possible_phase_offsets(:,best_offset),-2),[size(overair_data,1),size(overair_data,2),1,size(overair_data,4)]);
 %keyboard;
 
@@ -112,9 +113,9 @@ for tag_freq_offset_idx = 1:length(tag_freq_search_space)
     disp(['computing tag_freq=',num2str(tag_freq)])
     %mixing_signal = sign(cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times));
     %mixing_signal = exp(1i.*2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times);
-    %mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times);
+    mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times);
     %mixing_signal = sin(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times);
-    mixing_signal = ones(size(overair_data_times));
+    %mixing_signal = ones(size(overair_data_times));
     mixing_signal = mixing_signal.*repmat(blackman(size(mixing_signal,1)),[1,size(mixing_signal,2),size(mixing_signal,3)]);
     overair_data_temp = overair_data.*repmat(shiftdim(mixing_signal,-1),[size(overair_data,1),1,1,1]);
     %overair_data_temp = overair_data;
