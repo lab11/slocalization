@@ -61,7 +61,7 @@ class status_thread(_threading.Thread):
             self.tb.increment_channel()
             self.tb.switch_to_overair()
             num_steps += 1
-            if(num_steps > 50*8)
+            if(num_steps > 50*8):
                 self.tb.stop()
                 self.done = True
                 return
@@ -75,7 +75,7 @@ class status_thread(_threading.Thread):
 class build_block(gr.top_block):
     def __init__(self, args, trxoff):
         gr.top_block.__init__(self)
-        self.trxoff = trxoff
+        self.trxoff = int(trxoff)
 
         ##############################
         # TRANSMIT CHAIN
