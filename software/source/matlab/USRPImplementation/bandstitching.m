@@ -6,6 +6,9 @@ SAMPLE_RATE = 25e6;
 ACCUM_COUNT = 1e3;
 TAG_FREQ = 256;
 TAG_FREQ_PPM_ACCURACY = 50e-5;
+START_FREQ = 3.15e9;
+END_FREQ = 4.35e9;
+STEP_FREQ = SAMPLE_RATE;
 
 [cal_data, cal_data_times] = readUSRPData(in_cal_header_filename,in_cal_data_filename, SAMPLE_RATE, ACCUM_COUNT);
 cal_data = cal_data(:,CAL_VALID_MEAS_START_IDX:end,:,:);
@@ -76,6 +79,30 @@ for ii=2:size(overair_data,3)
     end
 end
 
+center_freqs = START_FREQ:STEP_FREQ:END_FREQ;
+possible_pll_offset_times = 0:1/400e6:19/400e6;
+possible_phase_offsets = exp(1i*2*pi*repmat(center_freqs.',[1,length(possible_pll_offset_times)]).*repmat(possible_pll_offset_times,[length(center_freqs),1]));
+cand_deconvolved = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),size(possible_phase_offsets,2));
+for ii=1:size(possible_phase_offsets,2)
+    overair_data_temp = overair_data;
+
+    overair_data_temp = overair_data_temp.*repmat(shiftdim(possible_phase_offsets(:,ii),-2),[size(overair_data,1),size(overair_data,2),1,size(overair_data,4)]);
+
+    overair_data_temp = squeeze(sum(overair_data_temp,2));
+    overair_data_fft = fft(overair_data_temp,[],1);
+    deconvolved_fft = overair_data_fft./repmat(cal_data_fft,[1,1,size(overair_data_fft,3)]);
+    deconvolved_fft = fftshift(deconvolved_fft,1);
+    deconvolved_fft = deconvolved_fft(2:2:end,:,:);
+    deconvolved_fft = reshape(deconvolved_fft,[size(deconvolved_fft,1)*size(deconvolved_fft,2),size(deconvolved_fft,3)]);
+    deconvolved_fft = deconvolved_fft.*repmat(hamming(size(deconvolved_fft,1)),[1,size(deconvolved_fft,2)]);
+    deconvolved_fft = ifftshift(deconvolved_fft,1);
+    cand_deconvolved(:,:,ii) = ifft(deconvolved_fft,[],1);
+end
+%phase_correction = repmat([repmat([0;3*pi/2;2*pi/2;pi/2],[12,1]);0],[1,size(phase_correction,2)]);
+%phase_correction = repmat([repmat(phase_correction(11:20,1),[4,1]);phase_correction(11:19,1)],[1,size(phase_correction,2)]);
+[~,best_offset] = min(sum(abs(cand_deconvolved(:,1,:)),1));
+keyboard;
+
 overair_data = overair_data.*exp(1i*repmat(shiftdim(phase_correction,-2),[size(overair_data,1),size(overair_data,2)]));
 
 deconvolved = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),length(tag_freq_search_space));
@@ -85,8 +112,8 @@ for tag_freq_offset_idx = 1:length(tag_freq_search_space)
     %mixing_signal = sign(cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times));
     %mixing_signal = exp(1i.*2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times);
     %mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times);
-    mixing_signal = sin(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times);
-    %mixing_signal = ones(size(overair_data_times));
+    %mixing_signal = sin(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times);
+    mixing_signal = ones(size(overair_data_times));
     mixing_signal = mixing_signal.*repmat(blackman(size(mixing_signal,1)),[1,size(mixing_signal,2),size(mixing_signal,3)]);
     overair_data_temp = overair_data.*repmat(shiftdim(mixing_signal,-1),[size(overair_data,1),1,1,1]);
     %overair_data_temp = overair_data;
@@ -123,6 +150,6 @@ for tag_freq_offset_idx = 1:length(tag_freq_search_space)
     
     %Inverse FFT = CIR
     deconvolved(:,:,tag_freq_offset_idx) = ifft(deconvolved_fft,[],1);
-    %keyboard;
+    keyboard;
 
 end

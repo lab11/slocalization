@@ -5,6 +5,16 @@ fid = fopen(header_csv_filename,'r');
 header_data = textscan(fid, '%d%d%s%f%d%d%s%f%s%f%d','headerlines',1,'Delimiter',',');
 fclose(fid);
 
+%First figure out where the first restart is and re-load header file throwing out these frequencies
+rx_freq = header_data{8};
+first_restart_idx = find(diff(rx_freq) < 0,1);
+num_bytes_to_ignore = sum(header_data{5}(1:first_restart_idx));
+
+%testscan is the best bet for reading in the corresponding data found in the header file
+fid = fopen(header_csv_filename,'r');
+header_data = textscan(fid, '%d%d%s%f%d%d%s%f%s%f%d','headerlines',1+first_restart_idx,'Delimiter',',');
+fclose(fid);
+
 %nbytes (column 5) tells us how many bytes are in each frequency range
 nbytes = header_data{5};
 cum_bytes = cumsum(nbytes(1:end-1));
@@ -25,6 +35,7 @@ num_reps = floor(length(rx_freq)/num_freq_bins);
 
 %read in the data file
 fid = fopen(data_filename,'r');
+fseek(fid,num_bytes_to_ignore,'bof');
 data = fread(fid,'float');
 fclose(fid);
 data = data(1:2:end) + 1i*data(2:2:end);
