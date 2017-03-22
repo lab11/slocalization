@@ -101,9 +101,10 @@ end
 %phase_correction = repmat([repmat([0;3*pi/2;2*pi/2;pi/2],[12,1]);0],[1,size(phase_correction,2)]);
 %phase_correction = repmat([repmat(phase_correction(11:20,1),[4,1]);phase_correction(11:19,1)],[1,size(phase_correction,2)]);
 [~,best_offset] = min(sum(abs(cand_deconvolved(:,1,:)),1));
-keyboard;
+overair_data = overair_data.*repmat(shiftdim(possible_phase_offsets(:,best_offset),-2),[size(overair_data,1),size(overair_data,2),1,size(overair_data,4)]);
+%keyboard;
 
-overair_data = overair_data.*exp(1i*repmat(shiftdim(phase_correction,-2),[size(overair_data,1),size(overair_data,2)]));
+%overair_data = overair_data.*exp(1i*repmat(shiftdim(phase_correction,-2),[size(overair_data,1),size(overair_data,2)]));
 
 deconvolved = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),length(tag_freq_search_space));
 for tag_freq_offset_idx = 1:length(tag_freq_search_space)
@@ -150,6 +151,6 @@ for tag_freq_offset_idx = 1:length(tag_freq_search_space)
     
     %Inverse FFT = CIR
     deconvolved(:,:,tag_freq_offset_idx) = ifft(deconvolved_fft,[],1);
-    keyboard;
+    %keyboard;
 
 end
