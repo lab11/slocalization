@@ -11,7 +11,7 @@ END_FREQ = 4.35e9;
 STEP_FREQ = SAMPLE_RATE;
 
 [cal_data, cal_data_times] = readUSRPData(in_cal_header_filename,in_cal_data_filename, SAMPLE_RATE, ACCUM_COUNT);
-cal_data = cal_data(:,CAL_VALID_MEAS_START_IDX:end,:,:);
+cal_data = cal_data(:,CAL_VALID_MEAS_START_IDX:end-CAL_VALID_MEAS_START_IDX,:,:);
 
 %For now, let's just use the last bandstitching sweep...
 cal_data = cal_data(:,:,:,end);
@@ -105,6 +105,8 @@ deconvolved_direct = cand_deconvolved(:,:,best_offset);
 overair_data = overair_data.*repmat(shiftdim(possible_phase_offsets(:,best_offset),-2),[size(overair_data,1),size(overair_data,2),1,size(overair_data,4)]);
 %keyboard;
 
+%overair_data = ones(size(overair_data));
+%overair_data = repmat(reshape(cal_data,[size(cal_data,1),1,size(cal_data,2)]),[1,size(overair_data,2),1,size(overair_data,4)]);
 %overair_data = overair_data.*exp(1i*repmat(shiftdim(phase_correction,-2),[size(overair_data,1),size(overair_data,2)]));
 
 deconvolved = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),length(tag_freq_search_space));
