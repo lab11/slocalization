@@ -19,8 +19,8 @@ cal_data = squeeze(sum(cal_data,2));
 cal_data_fft = fft(cal_data,[],1);
 
 [overair_data, overair_data_times] = readUSRPData(in_header_filename,in_data_filename, SAMPLE_RATE, ACCUM_COUNT);
-overair_data = overair_data(:,VALID_MEAS_START_IDX:end,:,:);
-overair_data_times = overair_data_times(VALID_MEAS_START_IDX:end,:,:);
+overair_data = overair_data(:,VALID_MEAS_START_IDX:end-VALID_MEAS_START_IDX,:,:);
+overair_data_times = overair_data_times(VALID_MEAS_START_IDX:end-VALID_MEAS_START_IDX,:,:);
 
 %%Find a good multiple of the tag period to provide an ending cutoff
 %tag_freq_num_idxs = SAMPLE_RATE/ACCUM_COUNT/size(overair_data,1)/TAG_FREQ;
