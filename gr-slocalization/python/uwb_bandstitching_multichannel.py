@@ -134,7 +134,7 @@ class build_block(gr.top_block):
             u_tx = uhd.usrp_sink(device_addr=usrp_addr, stream_args=stream_args)
             u_tx.set_samp_rate(SAMPLE_RATE)
             u_tx.set_clock_source("external")
-            center_freq = END_FREQ-100e6*usrp_idx
+            center_freq = END_FREQ-200e6*usrp_idx
             self.tr = uhd.tune_request(center_freq)
             self.tr.args = uhd.device_addr_t("mode_n=integer")
             u_tx.set_center_freq(self.tr)
