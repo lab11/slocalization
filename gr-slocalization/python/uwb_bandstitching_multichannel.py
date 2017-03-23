@@ -60,6 +60,11 @@ class status_thread(_threading.Thread):
         while not self.done:
             self.tb.increment_channel()
             self.tb.switch_to_overair()
+            num_steps += 1
+            if(num_steps > 50*8):
+                self.tb.stop()
+                self.done = True
+                return
             
             try:
                 next_call = next_call + STEP_TIME
@@ -68,8 +73,9 @@ class status_thread(_threading.Thread):
                 self.done = True
 
 class build_block(gr.top_block):
-    def __init__(self, args):
+    def __init__(self, args, trxoff):
         gr.top_block.__init__(self)
+        self.trxoff = int(trxoff)
 
         ##############################
         # TRANSMIT CHAIN
@@ -128,7 +134,7 @@ class build_block(gr.top_block):
             u_tx = uhd.usrp_sink(device_addr=usrp_addr, stream_args=stream_args)
             u_tx.set_samp_rate(SAMPLE_RATE)
             u_tx.set_clock_source("external")
-            center_freq = END_FREQ-100e6*usrp_idx
+            center_freq = END_FREQ-200e6*usrp_idx
             self.tr = uhd.tune_request(center_freq)
             self.tr.args = uhd.device_addr_t("mode_n=integer")
             u_tx.set_center_freq(self.tr)
@@ -191,7 +197,7 @@ class build_block(gr.top_block):
             progress_frac = (self.center_freqs[ii]-START_FREQ)/(END_FREQ-START_FREQ)
             tx_gain = (1-progress_frac)*START_TX_GAIN + progress_frac*END_TX_GAIN
             self.u_txs[ii].set_gain(tx_gain) #TX (and RX) gain is inconsistent across freuqency, so we compensate...
-            self.u_rxs[ii-2].set_center_freq(self.tr)
+            self.u_rxs[ii-self.trxoff].set_center_freq(self.tr)
 
     def switch_to_direct_feed(self):
         for u_rx in self.u_rxs:
@@ -205,9 +211,10 @@ def main ():
     parser = OptionParser (option_class=eng_option)
     parser.add_option("-A", "--args", type="string", default="addr=192.168.10.13,addr=192.168.20.14,addr=192.168.30.15",
                       help="UHD device address args [default=%default]")
+    parser.add_option("-o", "--trxoff", default=2)
     (options, args) = parser.parse_args ()
 
-    tb = build_block (options.args)
+    tb = build_block (options.args, options.trxoff)
     updater = status_thread(tb)
 
     try:

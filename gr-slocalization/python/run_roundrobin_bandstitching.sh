@@ -1,23 +1,18 @@
 #!/bin/bash
 
-./uwb_bandstitching.py --args1="addr=192.168.10.13" --args2="addr=192.168.20.14,addr=192.168.30.15"
-./gr_parse_file_metadata iq_out_192.168.20.14.dat
-mv data.dat data_10_to_20.dat
-mv header.csv header_10_to_20.csv
-./gr_parse_file_metadata iq_out_192.168.30.15.dat
-mv data.dat data_10_to_30.dat
-mv header.csv header_10_to_30.csv
-./uwb_bandstitching.py --args1="addr=192.168.20.14" --args2="addr=192.168.10.13,addr=192.168.30.15"
-./gr_parse_file_metadata iq_out_192.168.10.13.dat
-mv data.dat data_20_to_10.dat
-mv header.csv header_20_to_10.csv
-./gr_parse_file_metadata iq_out_192.168.30.15.dat
-mv data.dat data_20_to_30.dat
-mv header.csv header_20_to_30.csv
-./uwb_bandstitching.py --args1="addr=192.168.30.15" --args2="addr=192.168.10.13,addr=192.168.20.14"
-./gr_parse_file_metadata iq_out_192.168.10.13.dat
-mv data.dat data_30_to_10.dat
-mv header.csv header_30_to_10.csv
-./gr_parse_file_metadata iq_out_192.168.20.14.dat
-mv data.dat data_30_to_20.dat
-mv header.csv header_30_to_20.csv
+EXP_DIR=256hz_exp8
+
+mkdir $EXP_DIR
+mkdir $EXP_DIR/minus_2
+mkdir $EXP_DIR/minus_1
+
+./uwb_bandstitching_multichannel.py --trxoff=2
+mv iq_out* $EXP_DIR/minus_2
+cd $EXP_DIR/minus_2
+../../parse_iq_out_files.sh
+cd ../../
+./uwb_bandstitching_multichannel.py --trxoff=1
+mv iq_out* $EXP_DIR/minus_1
+cd $EXP_DIR/minus_1
+../../parse_iq_out_files.sh
+cd ../../
