@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXP_DIR=256hz_exp8
+EXP_DIR=256hz_exp10
 
 mkdir $EXP_DIR
 mkdir $EXP_DIR/minus_2
