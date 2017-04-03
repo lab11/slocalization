@@ -1,4 +1,4 @@
-function ret = extract_best_backscatter_cir(deconvolved)
+function [ret, best_backscatter_cir_idx] = extract_best_backscatter_cir(deconvolved)
 
 metric = squeeze(max(abs(deconvolved),[],1));
 

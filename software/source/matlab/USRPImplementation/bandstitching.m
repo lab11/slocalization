@@ -1,4 +1,4 @@
-function [deconvolved, deconvolved_direct] = bandstitching(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
+function [deconvolved, deconvolved_direct, cir_vs_integration_time] = bandstitching(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
 
 VALID_MEAS_START_IDX = 100;
 CAL_VALID_MEAS_START_IDX = 100;
@@ -110,7 +110,7 @@ overair_data = overair_data.*repmat(shiftdim(possible_phase_offsets(:,best_offse
 %overair_data = overair_data.*exp(1i*repmat(shiftdim(phase_correction,-2),[size(overair_data,1),size(overair_data,2)]));
 
 deconvolved = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),length(tag_freq_search_space));
-for tag_freq_offset_idx = 1:length(tag_freq_search_space)
+for tag_freq_offset_idx = 2:length(tag_freq_search_space)
     tag_freq = 1./TAG_FREQ*(1+tag_freq_search_space(tag_freq_offset_idx));
     disp(['computing tag_freq=',num2str(tag_freq)])
     %mixing_signal = sign(cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times));
@@ -157,3 +157,39 @@ for tag_freq_offset_idx = 1:length(tag_freq_search_space)
     %keyboard;
 
 end
+
+%BONUS: Determine the best tag frequency and generate a cumulative sum of tag CIR vs. time
+[~,best_backscatter_cir_idx] = extract_best_backscatter_cir(deconvolved);
+tag_freq = 1./TAG_FREQ*(1+tag_freq_search_space(best_backscatter_cir_idx));
+cir_vs_integration_time = zeros(size(deconvolved,1),size(deconvolved,2),size(overair_data,2));
+for ii=1:size(overair_data,2)
+    mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[ii,size(overair_data_times,2),1]).*overair_data_times(1:ii,:,:));
+    mixing_signal = mixing_signal.*repmat(blackman(size(mixing_signal,1)),[1,size(mixing_signal,2),size(mixing_signal,3)]);
+    overair_data_temp = overair_data(:,1:ii,:,:).*repmat(shiftdim(mixing_signal,-1),[size(overair_data,1),1,1,1]);
+
+    %Average across time...
+    overair_data_temp = squeeze(sum(overair_data_temp,2));
+
+    %Change everything to the frequency domain...
+    overair_data_fft = fft(overair_data_temp,[],1);
+
+    %Deconvolution is a simple division...
+    deconvolved_fft = overair_data_fft./repmat(cal_data_fft,[1,1,size(overair_data_fft,3)]);
+    
+    %Center DC...
+    deconvolved_fft = fftshift(deconvolved_fft,1);
+    
+    %For now, DC and -BW/2 are unusable, so only choose every other bin for now...
+    deconvolved_fft = deconvolved_fft(2:2:end,:,:);
+
+    %Flatten to one dimension
+    deconvolved_fft = reshape(deconvolved_fft,[size(deconvolved_fft,1)*size(deconvolved_fft,2),size(deconvolved_fft,3)]);
+    
+    %Load and apply window function
+    deconvolved_fft = deconvolved_fft.*repmat(hamming(size(deconvolved_fft,1)),[1,size(deconvolved_fft,2)]);
+    deconvolved_fft = ifftshift(deconvolved_fft,1);
+    
+    %Inverse FFT = CIR
+    cir_vs_integration_time(:,:,ii) = ifft(deconvolved_fft,[],1);
+end
+
