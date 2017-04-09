@@ -66,6 +66,8 @@ const uint8_t pn_sequence_length = 63;
 #define DFF_CLK_PIN GPIO_PIN_1
 #define DFF_DATA0_PIN GPIO_PIN_0
 #define DFF_DATA1_PIN GPIO_PIN_4
+#define RTC_PORT GPIOA
+#define RTC_PIN GPIO_PIN_0
 
 #define RESET_COUNT_REGISTER 2
 #define I2C_ADDRESS 0xD2
@@ -142,20 +144,25 @@ int Reset_Handler(void)
   GPIO_InitStruct.Pin = DFF_DATA1_PIN;
   HAL_GPIO_Init(DFF_PORT, &GPIO_InitStruct);
 
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  GPIO_InitStruct.Pin = RTC_PIN;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  HAL_GPIO_Init(RTC_PORT, &GPIO_InitStruct);
+
   RtcHandle.Instance = RTC;
   __HAL_RCC_PWR_CLK_ENABLE();
   HAL_PWR_EnableBkUpAccess();
  
-  /* Check if the system was resumed from Standby mode */ 
-  if (__HAL_PWR_GET_FLAG(PWR_FLAG_SB) != RESET)
-  {
-    reset_count = HAL_RTCEx_BKUPRead(&RtcHandle, RESET_COUNT_REGISTER);
-    reset_count++;
+  ///* Check if the system was resumed from Standby mode */ 
+  //if (__HAL_PWR_GET_FLAG(PWR_FLAG_SB) != RESET)
+  //{
+  //  reset_count = HAL_RTCEx_BKUPRead(&RtcHandle, RESET_COUNT_REGISTER);
+  //  reset_count++;
 
-    /* Clear Standby flag */
-    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB); 
+  //  /* Clear Standby flag */
+  //  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB); 
 
-  } else {
+  //} else {
     I2C_HandleTypeDef I2CxHandleLocal = {0};
 
     /* Insert 5 seconds delay */
@@ -183,24 +190,31 @@ int Reset_Handler(void)
     //Ambiq_0805_Command(0x11, 0x03);
     Ambiq_0805_Command(0x11, 0x01);
     Ambiq_0805_Command(0x18, 0x3C);
-  }
+  //}
 
   // Write new reset count to backup register
   HAL_RTCEx_BKUPWrite(&RtcHandle, RESET_COUNT_REGISTER, reset_count);
 
-  // Get current PN bit
-  reset_count %= (pn_sequence_length << 1);
-  pn_sequence_byte = reset_count >> 4;
-  pn_sequence_bit = (pn_sequence[pn_sequence_byte] & (0x80 >> ((reset_count >> 1) & 7))) > 0;
-  pn_sequence_bit = (reset_count & 1);// ^ pn_sequence_bit;
-  if(pn_sequence_bit){
-    HAL_GPIO_WritePin(DFF_PORT, DFF_DATA0_PIN, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(DFF_PORT, DFF_DATA1_PIN, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(DFF_PORT, DFF_CLK_PIN, GPIO_PIN_SET);
-  } else {
-    HAL_GPIO_WritePin(DFF_PORT, DFF_DATA0_PIN, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(DFF_PORT, DFF_DATA1_PIN, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(DFF_PORT, DFF_CLK_PIN, GPIO_PIN_SET);
+  uint8_t last_rtc_bit = 0;
+  while(1){
+    HAL_GPIO_WritePin(DFF_PORT, DFF_CLK_PIN, GPIO_PIN_RESET);
+    // Get current PN bit
+    uint8_t rtc_bit = HAL_GPIO_ReadPin(RTC_PORT, RTC_PIN);
+    if(rtc_bit & ~last_rtc_bit) reset_count++;
+    reset_count %= (pn_sequence_length << 2);
+    pn_sequence_byte = reset_count >> 5;
+    pn_sequence_bit = (pn_sequence[pn_sequence_byte] & (0x80 >> ((reset_count >> 2) & 7))) > 0;
+
+    if(pn_sequence_bit ^ rtc_bit){
+      HAL_GPIO_WritePin(DFF_PORT, DFF_DATA0_PIN, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(DFF_PORT, DFF_DATA1_PIN, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(DFF_PORT, DFF_CLK_PIN, GPIO_PIN_SET);
+    } else {
+      HAL_GPIO_WritePin(DFF_PORT, DFF_DATA0_PIN, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(DFF_PORT, DFF_DATA1_PIN, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(DFF_PORT, DFF_CLK_PIN, GPIO_PIN_SET);
+    }
+    last_rtc_bit = rtc_bit;
   }
 
  /* The Following Wakeup sequence is highly recommended prior to each Standby mode entry

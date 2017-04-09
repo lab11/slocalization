@@ -1,4 +1,4 @@
-function [deconvolved, deconvolved_direct, deconvolved_variance, cir_vs_integration_time] = bandstitching(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
+function [deconvolved, deconvolved_direct, deconvolved_fft_variance, cir_vs_integration_time] = bandstitching(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
 
 VALID_MEAS_START_IDX = 100;
 CAL_VALID_MEAS_START_IDX = 100;
@@ -195,8 +195,8 @@ end
 
 %Calculate the CIR variance for a number of different highpass cutoffs
 highpass_freq_cutoffs = [1,floor(50/1250*size(overair_data,2)),floor(150/1250*size(overair_data,2))];
-deconvolved_variance = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),length(highpass_freq_cutoffs));
-deconvolved_variance_temp = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),size(overair_data,2));
+deconvolved_fft_variance = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),length(highpass_freq_cutoffs));
+deconvolved_fft_variance_temp = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),size(overair_data,2));
 for highpass_freq_cutoff_idx = 1:length(highpass_freq_cutoffs)
     highpass_freq_cutoff = highpass_freq_cutoffs(highpass_freq_cutoff_idx);
     overair_data_hp_fft = fft(overair_data,[],2);
@@ -222,12 +222,8 @@ for highpass_freq_cutoff_idx = 1:length(highpass_freq_cutoffs)
         %Flatten to one dimension
         deconvolved_fft = reshape(deconvolved_fft,[size(deconvolved_fft,1)*size(deconvolved_fft,2),size(deconvolved_fft,3)]);
     
-        %Load and apply window function
-        deconvolved_fft = deconvolved_fft.*repmat(hamming(size(deconvolved_fft,1)),[1,size(deconvolved_fft,2)]);
-        deconvolved_fft = ifftshift(deconvolved_fft,1);
-    
         %Inverse FFT = CIR
-        deconvolved_variance_temp(:,:,ii) = ifft(deconvolved_fft,[],1);
+        deconvolved_fft_variance_temp(:,:,ii) = deconvolved_fft;
     end
-    deconvolved_variance(:,:,highpass_freq_cutoff_idx) = abs(var(deconvolved_variance_temp,0,3));
+    deconvolved_fft_variance(:,:,highpass_freq_cutoff_idx) = abs(var(deconvolved_fft_variance_temp,0,3));
 end
