@@ -24,4 +24,17 @@ est_positions = [...
 
 coord_diffs = est_positions-actual_positions;
 pos_errors = sqrt(sum(coord_diffs.^2,2));
+pos_errors_2d = sqrt(sum(coord_diffs(:,1:2).^2,2));
 average_error = mean(pos_errors);
+
+min_error_3d = min(pos_errors);
+max_error_3d = max(pos_errors);
+mean_error_3d = mean(pos_errors);
+median_error_3d = median(pos_errors);
+std_error_3d = std(pos_errors);
+
+min_error_2d = min(pos_errors_2d);
+max_error_2d = max(pos_errors_2d);
+mean_error_2d = mean(pos_errors_2d);
+median_error_2d = median(pos_errors_2d);
+std_error_2d = std(pos_errors_2d);
