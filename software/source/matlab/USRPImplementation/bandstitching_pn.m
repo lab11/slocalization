@@ -1,4 +1,4 @@
-function [deconvolved, deconvolved_direct, deconvolved_fft_variance, cir_vs_integration_time] = bandstitching_pn(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
+function [deconvolved, deconvolved_direct] = bandstitching_pn(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
 
 VALID_MEAS_START_IDX = 100;
 CAL_VALID_MEAS_START_IDX = 100;
@@ -53,6 +53,7 @@ overair_data_times = overair_data_times(VALID_MEAS_START_IDX:end-VALID_MEAS_STAR
 
 %In order to locate the backscatter tag, we need to search across <tag_freq,quadrature_phase>
 tag_freq_search_space = -TAG_FREQ_PPM_ACCURACY:5e-6:0;%TAG_FREQ_PPM_ACCURACY;
+tag_freq_search_space = tag_freq_search_space(30:70);
 %tag_search_corr = zeros(length(tag_freq_search_space),size(overair_data,4));
 %for tag_freq_offset_idx = 1:length(tag_freq_search_space)
 %    tag_freq_offset_ppm = tag_freq_search_space(tag_freq_offset_idx);
@@ -180,79 +181,78 @@ for tag_time_offset_idx = 1:length(pn_code)*8
         %keyboard;
     
     end
-    imagesc(squeeze(max(abs(deconvolved),[],1)));
-    refresh;
+    save -mat deconvolved_pn.mat deconvolved
     disp(['computing tag_time=',num2str(tag_time_offset_idx)])
 end
 toc
-keyboard;
+%keyboard;
 
-%BONUS: Determine the best tag frequency and generate a cumulative sum of tag CIR vs. time
-[~,best_backscatter_cir_idx] = extract_best_backscatter_cir(deconvolved);
-tag_freq = 1./TAG_FREQ*(1+tag_freq_search_space(best_backscatter_cir_idx));
-cir_vs_integration_time = zeros(size(deconvolved,1),size(deconvolved,2),size(overair_data,2));
-for ii=1:size(overair_data,2)
-    mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[ii,size(overair_data_times,2),1]).*overair_data_times(1:ii,:,:));
-    mixing_signal = mixing_signal.*repmat(blackman(size(mixing_signal,1)),[1,size(mixing_signal,2),size(mixing_signal,3)]);
-    overair_data_temp = overair_data(:,1:ii,:,:).*repmat(shiftdim(mixing_signal,-1),[size(overair_data,1),1,1,1]);
-
-    %Average across time...
-    overair_data_temp = squeeze(sum(overair_data_temp,2));
-
-    %Change everything to the frequency domain...
-    overair_data_fft = fft(overair_data_temp,[],1);
-
-    %Deconvolution is a simple division...
-    deconvolved_fft = overair_data_fft./repmat(cal_data_fft,[1,1,size(overair_data_fft,3)]);
-    
-    %Center DC...
-    deconvolved_fft = fftshift(deconvolved_fft,1);
-    
-    %For now, DC and -BW/2 are unusable, so only choose every other bin for now...
-    deconvolved_fft = deconvolved_fft(2:2:end,:,:);
-
-    %Flatten to one dimension
-    deconvolved_fft = reshape(deconvolved_fft,[size(deconvolved_fft,1)*size(deconvolved_fft,2),size(deconvolved_fft,3)]);
-    
-    %Load and apply window function
-    deconvolved_fft = deconvolved_fft.*repmat(hamming(size(deconvolved_fft,1)),[1,size(deconvolved_fft,2)]);
-    deconvolved_fft = ifftshift(deconvolved_fft,1);
-    
-    %Inverse FFT = CIR
-    cir_vs_integration_time(:,:,ii) = ifft(deconvolved_fft,[],1);
-end
-
-%Calculate the CIR variance for a number of different highpass cutoffs
-highpass_freq_cutoffs = [1,floor(50/1250*size(overair_data,2)),floor(150/1250*size(overair_data,2))];
-deconvolved_fft_variance = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),length(highpass_freq_cutoffs));
-deconvolved_fft_variance_temp = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),size(overair_data,2));
-for highpass_freq_cutoff_idx = 1:length(highpass_freq_cutoffs)
-    highpass_freq_cutoff = highpass_freq_cutoffs(highpass_freq_cutoff_idx);
-    overair_data_hp_fft = fft(overair_data,[],2);
-    overair_data_hp_fft(:,1:highpass_freq_cutoff,:,:) = 0;
-    overair_data_hp_fft(:,end-highpass_freq_cutoff:end,:,:) = 0;
-    overair_data_hp = ifft(overair_data_hp_fft,[],2);
-    for ii = 1:size(overair_data,2)
-        %Average across time...
-        overair_data_temp = squeeze(overair_data_hp(:,ii,:,:));
-    
-        %Change everything to the frequency domain...
-        overair_data_fft = fft(overair_data_temp,[],1);
-    
-        %Deconvolution is a simple division...
-        deconvolved_fft = overair_data_fft./repmat(cal_data_fft,[1,1,size(overair_data_fft,3)]);
-        
-        %Center DC...
-        deconvolved_fft = fftshift(deconvolved_fft,1);
-    
-        %For now, DC and -BW/2 are unusable, so only choose every other bin for now...
-        deconvolved_fft = deconvolved_fft(2:2:end,:,:);
-    
-        %Flatten to one dimension
-        deconvolved_fft = reshape(deconvolved_fft,[size(deconvolved_fft,1)*size(deconvolved_fft,2),size(deconvolved_fft,3)]);
-    
-        %Inverse FFT = CIR
-        deconvolved_fft_variance_temp(:,:,ii) = deconvolved_fft;
-    end
-    deconvolved_fft_variance(:,:,highpass_freq_cutoff_idx) = abs(var(deconvolved_fft_variance_temp,0,3));
-end
+%%BONUS: Determine the best tag frequency and generate a cumulative sum of tag CIR vs. time
+%[~,best_backscatter_cir_idx] = extract_best_backscatter_cir(deconvolved);
+%tag_freq = 1./TAG_FREQ*(1+tag_freq_search_space(best_backscatter_cir_idx));
+%cir_vs_integration_time = zeros(size(deconvolved,1),size(deconvolved,2),size(overair_data,2));
+%for ii=1:size(overair_data,2)
+%    mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[ii,size(overair_data_times,2),1]).*overair_data_times(1:ii,:,:));
+%    mixing_signal = mixing_signal.*repmat(blackman(size(mixing_signal,1)),[1,size(mixing_signal,2),size(mixing_signal,3)]);
+%    overair_data_temp = overair_data(:,1:ii,:,:).*repmat(shiftdim(mixing_signal,-1),[size(overair_data,1),1,1,1]);
+%
+%    %Average across time...
+%    overair_data_temp = squeeze(sum(overair_data_temp,2));
+%
+%    %Change everything to the frequency domain...
+%    overair_data_fft = fft(overair_data_temp,[],1);
+%
+%    %Deconvolution is a simple division...
+%    deconvolved_fft = overair_data_fft./repmat(cal_data_fft,[1,1,size(overair_data_fft,3)]);
+%    
+%    %Center DC...
+%    deconvolved_fft = fftshift(deconvolved_fft,1);
+%    
+%    %For now, DC and -BW/2 are unusable, so only choose every other bin for now...
+%    deconvolved_fft = deconvolved_fft(2:2:end,:,:);
+%
+%    %Flatten to one dimension
+%    deconvolved_fft = reshape(deconvolved_fft,[size(deconvolved_fft,1)*size(deconvolved_fft,2),size(deconvolved_fft,3)]);
+%    
+%    %Load and apply window function
+%    deconvolved_fft = deconvolved_fft.*repmat(hamming(size(deconvolved_fft,1)),[1,size(deconvolved_fft,2)]);
+%    deconvolved_fft = ifftshift(deconvolved_fft,1);
+%    
+%    %Inverse FFT = CIR
+%    cir_vs_integration_time(:,:,ii) = ifft(deconvolved_fft,[],1);
+%end
+%
+%%Calculate the CIR variance for a number of different highpass cutoffs
+%highpass_freq_cutoffs = [1,floor(50/1250*size(overair_data,2)),floor(150/1250*size(overair_data,2))];
+%deconvolved_fft_variance = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),length(highpass_freq_cutoffs));
+%deconvolved_fft_variance_temp = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),size(overair_data,2));
+%for highpass_freq_cutoff_idx = 1:length(highpass_freq_cutoffs)
+%    highpass_freq_cutoff = highpass_freq_cutoffs(highpass_freq_cutoff_idx);
+%    overair_data_hp_fft = fft(overair_data,[],2);
+%    overair_data_hp_fft(:,1:highpass_freq_cutoff,:,:) = 0;
+%    overair_data_hp_fft(:,end-highpass_freq_cutoff:end,:,:) = 0;
+%    overair_data_hp = ifft(overair_data_hp_fft,[],2);
+%    for ii = 1:size(overair_data,2)
+%        %Average across time...
+%        overair_data_temp = squeeze(overair_data_hp(:,ii,:,:));
+%    
+%        %Change everything to the frequency domain...
+%        overair_data_fft = fft(overair_data_temp,[],1);
+%    
+%        %Deconvolution is a simple division...
+%        deconvolved_fft = overair_data_fft./repmat(cal_data_fft,[1,1,size(overair_data_fft,3)]);
+%        
+%        %Center DC...
+%        deconvolved_fft = fftshift(deconvolved_fft,1);
+%    
+%        %For now, DC and -BW/2 are unusable, so only choose every other bin for now...
+%        deconvolved_fft = deconvolved_fft(2:2:end,:,:);
+%    
+%        %Flatten to one dimension
+%        deconvolved_fft = reshape(deconvolved_fft,[size(deconvolved_fft,1)*size(deconvolved_fft,2),size(deconvolved_fft,3)]);
+%    
+%        %Inverse FFT = CIR
+%        deconvolved_fft_variance_temp(:,:,ii) = deconvolved_fft;
+%    end
+%    deconvolved_fft_variance(:,:,highpass_freq_cutoff_idx) = abs(var(deconvolved_fft_variance_temp,0,3));
+%end
