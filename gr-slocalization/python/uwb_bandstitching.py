@@ -43,7 +43,7 @@ START_TX_GAIN = 15.6
 END_TX_GAIN = 18.9+6
 STEP_FREQ = SAMPLE_RATE
 DIRECT_FEED_TIME = 0.01
-STEP_TIME = 2.00
+STEP_TIME = 20.00
 SIGNAL_LEN = 20
 
 class status_thread(_threading.Thread):
@@ -153,7 +153,7 @@ class build_block(gr.top_block):
             #rx_dst = blocks.file_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat")
 
             # Accumulate repeating sequences using custom block
-            rx_accum = slocalization.accumulator_vcvc(SIGNAL_LEN, int(1e3))
+            rx_accum = slocalization.accumulator_vcvc(SIGNAL_LEN, int(10e3))
 
             #Find USRP with device characteristics specified by args1
             d2 = uhd.find_devices(uhd.device_addr(usrp_addr))
