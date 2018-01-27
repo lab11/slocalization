@@ -217,7 +217,7 @@ class build_block(gr.top_block):
 
 def main ():
     parser = OptionParser (option_class=eng_option)
-    parser.add_option("-a", "--args1", type="string", default="addr=192.168.10.13",
+    parser.add_option("-a", "--args1", type="string", default="addr=192.168.10.13,send_buff_size=5000000000",
                       help="TX UHD device (#1) address args [default=%default]")
     parser.add_option("-A", "--args2", type="string", default="addr=192.168.20.14,addr=192.168.30.15",
                       help="RX UHD device (#2) address args [default=%default]")

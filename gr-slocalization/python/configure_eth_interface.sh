@@ -12,7 +12,7 @@ fi
 
 #Increase size of UDP buffers
 sudo sysctl -w net.core.rmem_max=50000000
-sudo sysctl -w net.core.wmem_max=1048576
+sudo sysctl -w net.core.wmem_max=50000000
 
 #Maximize the number of descriptors for the NIC
 INTERFACE_NAME=`ip -o route get $IP_ADDRESS | awk '{ print $3 }'`
