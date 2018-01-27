@@ -153,7 +153,7 @@ class build_block(gr.top_block):
             #rx_dst = blocks.file_sink(gr.sizeof_gr_complex*SIGNAL_LEN, "iq_out.dat")
 
             # Accumulate repeating sequences using custom block
-            rx_accum = slocalization.accumulator_vcvc(SIGNAL_LEN, int(10e3))
+            rx_accum = slocalization.accumulator_vcvc(SIGNAL_LEN, int(1e3))
 
             #Find USRP with device characteristics specified by args1
             d2 = uhd.find_devices(uhd.device_addr(usrp_addr))
@@ -227,7 +227,7 @@ def main ():
     updater = status_thread(tb)
 
     try:
-        tb.run()
+        tb.run(2000000000)
     except KeyboardInterrupt:
         updater.done = True
         updater = None
