@@ -101,7 +101,7 @@ int Reset_Handler(void)
 {
   uint32_t reset_count;
   uint32_t pn_sequence_byte;
-  uint8_t pn_sequence_bit;
+  uint8_t pn_sequence_bit = 0;
   /* STM32L0xx HAL library initialization:
        - Configure the Flash prefetch, Flash preread and Buffer caches
        - Systick timer is configured by default as source of time base, but user 
@@ -201,9 +201,12 @@ int Reset_Handler(void)
     // Get current PN bit
     uint8_t rtc_bit = HAL_GPIO_ReadPin(RTC_PORT, RTC_PIN);
     if(rtc_bit & ~last_rtc_bit) reset_count++;
+    /*
     reset_count %= (pn_sequence_length << 2);
     pn_sequence_byte = reset_count >> 5;
     pn_sequence_bit = (pn_sequence[pn_sequence_byte] & (0x80 >> ((reset_count >> 2) & 7))) > 0;
+    */
+    pn_sequence_bit = 0;
 
     if(pn_sequence_bit ^ rtc_bit){
       HAL_GPIO_WritePin(DFF_PORT, DFF_DATA0_PIN, GPIO_PIN_RESET);
