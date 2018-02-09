@@ -1,11 +1,19 @@
-function [deconvolved, deconvolved_direct] = bandstitching_pn(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
+function [deconvolved, deconvolved_direct] = bandstitching_onezero(exp_folder, cal_folder, from, to)
+%function [deconvolved, deconvolved_direct] = bandstitching_pn(in_header_filename, in_data_filename, in_cal_header_filename, in_cal_data_filename)
+%[experiment_folder_name,'/30_tx/header_192.168.20.14.csv'],[experiment_folder_name,'/30_tx/data_192.168.20.14.dat'],[cal_folder_name,'/30_tx/header_192.168.20.14.csv'],[cal_folder_name,'/30_tx/data_192.168.20.14.dat']
+
+in_header_filename     = [exp_folder,'/',from,'/','header_',to,'.csv'];
+in_data_filename       = [exp_folder,'/',from,'/','data_',to,'.dat'];
+in_cal_header_filename = [cal_folder,'/',from,'/','header_',to,'.csv'];
+in_cal_data_filename   = [cal_folder,'/',from,'/','data_',to,'.dat'];
+out_image_prefix       = [exp_folder,'/',from,'/','result_',to];
 
 VALID_MEAS_START_IDX = 100;
 CAL_VALID_MEAS_START_IDX = 100;
 SAMPLE_RATE = 25e6;
 ACCUM_COUNT = 1e3;
 TAG_FREQ = 256.064;
-TAG_FREQ_PPM_ACCURACY = 2000e-6;
+TAG_FREQ_PPM_ACCURACY = 1000e-6;
 START_FREQ = 3.15e9;
 END_FREQ = 4.35e9;
 STEP_FREQ = SAMPLE_RATE;
@@ -45,9 +53,11 @@ end
 blah = squeeze(max(20*log10(abs(fft(overair_data,[],2))),[],1));
 toc
 
-figure(1);
+f1 = figure(1);
 plot(TAG_FREQ*(1+tag_freq_search_space),20*log10(mean(max(tag_freq_search_corr,[],1),3)))
 title('Correlation vs. tag frequency estimate');
-figure(2);
+saveas(f1, [out_image_prefix,'corr-freq-est','.png']);
+f2 = figure(2);
 imagesc(tag_freq_search_corr(:,:,1))
+saveas(f2, [out_image_prefix,'tag-corr-heat','.png']);
 keyboard;
