@@ -35,7 +35,8 @@ overair_data_times = overair_data_times(VALID_MEAS_START_IDX:end-VALID_MEAS_STAR
 %overair_data_times = overair_data_times(1:10000,:);
 
 %Break sample into ranges
-overair_starts = 1:10000:length(overair_data);
+SAMPLEN = 12350*2;
+overair_starts = 1:SAMPLEN:length(overair_data);
 %Drop last, incomplete
 overair_starts = overair_starts(1:end-1);
 
@@ -51,9 +52,9 @@ step_idxs = zeros(length(overair_starts),size(overair_data,3));
 tic;
 for overair_start_idx = 1:length(overair_starts)
     overair_start = overair_starts(overair_start_idx);
-    disp(['computing start=',num2str(overair_start)])
-    data = overair_data(:,overair_start:overair_start+10000,:);
-    data_times = overair_data_times(overair_start:overair_start+10000,:);
+    disp(['computing ',num2str(overair_start),'-',num2str(overair_start+SAMPLEN)])
+    data = overair_data(:,overair_start:overair_start+SAMPLEN,:);
+    data_times = overair_data_times(overair_start:overair_start+SAMPLEN,:);
     for tag_time_offset_idx = 1:phase_steps
         tag_freq = 1./TAG_FREQ;
         mixing_signal = cos(2.*pi.*TAG_FREQ.*repmat(data_times(:,1),[1,size(data_times,2)])+tag_time_offset_idx*pi/phase_steps);
@@ -62,7 +63,7 @@ for overair_start_idx = 1:length(overair_starts)
         data_temp = data.*repmat(shiftdim(mixing_signal,-1),[size(data,1),1,1,1]);
         %data_temp = data;
         tag_freq_search_corr(tag_time_offset_idx,1,:) = squeeze(sum(abs(sum(data_temp,2)),1));
-        keyboard;
+        %keyboard;
     end
 
     %f1 = figure(1);
@@ -107,4 +108,4 @@ plot(step_idxs(:,3));
 ylim([0,64]);
 title([TAG_FREQ,3])
 
-%keyboard;
+keyboard;
