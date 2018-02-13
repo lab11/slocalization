@@ -80,7 +80,8 @@ for tag_time_offset_idx = 1:8%length(pn_code)*8
     disp(['computing tag_time=',num2str(tag_time_offset_idx)])
     for tag_freq_offset_idx = 1:length(tag_freq_search_space)
         tag_freq = 1./TAG_FREQ*(1-tag_freq_search_space(tag_freq_offset_idx));
-        mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*repmat(overair_data_times(:,1),[1,size(overair_data_times,2)])+tag_time_offset_idx*pi/8);
+        mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times+tag_time_offset_idx*pi/8);
+        keyboard;
         %mixing_signal = ones(size(overair_data_times));
         mixing_signal = mixing_signal.*repmat(blackman(size(mixing_signal,1)),[1,size(mixing_signal,2),size(mixing_signal,3)]);
         overair_data_temp = overair_data.*repmat(shiftdim(mixing_signal,-1),[size(overair_data,1),1,1,1]);
