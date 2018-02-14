@@ -12,7 +12,7 @@ VALID_MEAS_START_IDX = 100;
 CAL_VALID_MEAS_START_IDX = 100;
 SAMPLE_RATE = 25e6;
 ACCUM_COUNT = 1e3;
-TAG_FREQ = 256.062675;
+TAG_FREQ = 256.06285;
 TAG_FREQ_PPM_ACCURACY = 1000e-6;
 START_FREQ = 3.15e9;
 END_FREQ = 4.35e9;
@@ -35,7 +35,7 @@ overair_data_times = overair_data_times(VALID_MEAS_START_IDX:end-VALID_MEAS_STAR
 %overair_data_times = overair_data_times(1:10000,:);
 
 %Break sample into ranges
-SAMPLEN = 12350*2;
+SAMPLEN = 12350*1;
 overair_starts = 1:SAMPLEN:length(overair_data);
 %Drop last, incomplete
 overair_starts = overair_starts(1:end-1);
@@ -44,7 +44,7 @@ overair_starts = overair_starts(1:end-1);
 %tag_freq_search_space = -TAG_FREQ_PPM_ACCURACY:100e-6:TAG_FREQ_PPM_ACCURACY;
 
 %tag_freq_search_corr = zeros(8,length(tag_freq_search_space),size(overair_data,3));
-phase_steps = 64;
+phase_steps = 32;
 tag_freq_search_corr = zeros(phase_steps,1,size(overair_data,3));
 
 step_idxs = zeros(length(overair_starts),size(overair_data,3));
@@ -110,6 +110,6 @@ toc
 
 figure(50);
 plot(step_idxs(:));
-ylim([0 65]);
+ylim([0 phase_steps+1]);
 
 %keyboard;
