@@ -12,7 +12,7 @@ VALID_MEAS_START_IDX = 100;
 CAL_VALID_MEAS_START_IDX = 100;
 SAMPLE_RATE = 25e6;
 ACCUM_COUNT = 1e3;
-TAG_FREQ = 256.064;
+TAG_FREQ = 256.062675;
 TAG_FREQ_PPM_ACCURACY = 1000e-6;
 START_FREQ = 3.15e9;
 END_FREQ = 4.35e9;
@@ -93,19 +93,23 @@ toc
 %imagesc(tag_freq_search_corr(:,:,3))
 %saveas(f2, [out_image_prefix,'tag-corr-heat','.png']);
 
-figure(1);
-plot(step_idxs(:,1));
-ylim([0,64]);
-title([TAG_FREQ,1])
+%figure(1);
+%plot(step_idxs(:,1));
+%ylim([0,64]);
+%title([TAG_FREQ,1])
+%
+%figure(2);
+%plot(step_idxs(:,2));
+%ylim([0,64]);
+%title([TAG_FREQ,2])
+%
+%figure(3);
+%plot(step_idxs(:,3));
+%ylim([0,64]);
+%title([TAG_FREQ,3])
 
-figure(2);
-plot(step_idxs(:,2));
-ylim([0,64]);
-title([TAG_FREQ,2])
+figure(50);
+plot(step_idxs(:));
+ylim([0 65]);
 
-figure(3);
-plot(step_idxs(:,3));
-ylim([0,64]);
-title([TAG_FREQ,3])
-
-keyboard;
+%keyboard;
