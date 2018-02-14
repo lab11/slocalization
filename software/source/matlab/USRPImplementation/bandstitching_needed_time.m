@@ -25,6 +25,13 @@ cal_data_fft = fft(cal_data,[],1);
 overair_data = overair_data(:,VALID_MEAS_START_IDX:end-VALID_MEAS_START_IDX,:,:);
 overair_data_times = overair_data_times(VALID_MEAS_START_IDX:end-VALID_MEAS_START_IDX,:,:);
 
+%Have an experiment where we lost the last few bands, cut off cal to match
+if size(overair_data,3) ~= size(cal_data,2)
+  cal_data = cal_data(:,1:size(overair_data,3));
+  cal_data_fft = cal_data_fft(:,1:size(overair_data,3));
+  cal_data_times = cal_data_times(:,1:size(overair_data,3));
+end
+
 sample_limit = 0;
 
 figure(1);
@@ -41,7 +48,13 @@ tag_freq_search_space = -TAG_FREQ_PPM_ACCURACY:100e-6:TAG_FREQ_PPM_ACCURACY;
 
 noise_cfr = zeros(size(overair_data,3)*10,1);
 noise_cir = zeros(size(overair_data,3)*100,1);
-cfr_snr = [];
+gain_snr = [];
+%real SNR
+load('~/Dropbox/benpat/slo-long/work/cir_noise.mat', 'cir_noise_padded');
+%Have an experiment where we lost the last few bands, cut off to match
+if size(overair_data,3)*100 ~= size(cir_noise_padded)
+  cir_noise_padded = cir_noise_padded(1:size(overair_data,3)*100);
+end
 cir_snr = [];
 deconvolved_fft_best = zeros(size(overair_data,1)/2,size(overair_data,3));
 

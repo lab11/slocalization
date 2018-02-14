@@ -40,6 +40,10 @@ for ii=2:size(overair_data,3)
 end
 
 center_freqs = START_FREQ:STEP_FREQ:END_FREQ;
+%Have an experiment where we lost the last few bands, cut off to match
+if size(overair_data,3) ~= size(center_freqs)
+    center_freqs = center_freqs(1:size(overair_data,3));
+end
 possible_pll_offset_times = 0:1/400e6:19/400e6;
 possible_phase_offsets = exp(1i*2*pi*repmat(center_freqs.',[1,length(possible_pll_offset_times)]).*repmat(possible_pll_offset_times,[length(center_freqs),1]));
 cand_deconvolved = zeros(size(overair_data,1)/2*size(overair_data,3),size(overair_data,4),size(possible_phase_offsets,2));
@@ -81,7 +85,7 @@ for tag_time_offset_idx = 1:8%length(pn_code)*8
     for tag_freq_offset_idx = 1:length(tag_freq_search_space)
         tag_freq = 1./TAG_FREQ*(1-tag_freq_search_space(tag_freq_offset_idx));
         mixing_signal = cos(2.*pi./repmat(shiftdim(tag_freq,-1),[size(overair_data_times,1),size(overair_data_times,2),1]).*overair_data_times+tag_time_offset_idx*pi/8);
-        keyboard;
+        %keyboard;
         %mixing_signal = ones(size(overair_data_times));
         mixing_signal = mixing_signal.*repmat(blackman(size(mixing_signal,1)),[1,size(mixing_signal,2),size(mixing_signal,3)]);
         overair_data_temp = overair_data.*repmat(shiftdim(mixing_signal,-1),[size(overair_data,1),1,1,1]);
