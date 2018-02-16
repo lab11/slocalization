@@ -72,10 +72,10 @@ clf();
 %
 % 20->30
 % 01 256.06300
-% 02 256.06300
+% 02 256.06290
 % 03 256.06300
-% 04 256.06285
-% 05 256.06285
+% 04 256.06290
+% 05 256.06290
 % 06 256.06285
 % 07 256.06300
 % 08 256.06300
@@ -240,6 +240,7 @@ for sample_idx = 1:length(samples)
   sample_limit = sample_limit + SAMPLE_LIMIT_STEP;
 end
 
+keyboard;
 save(out_cirs, 'cirs', 'samples', 'confidence', 'tdoas');
 
 %keyboard;
